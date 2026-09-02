@@ -98,7 +98,8 @@ Open Code Reviewのコア哲学は、決定論的エンジニアリングとエ�
 
 ### 前提条件
 
-- **Git >= 2.41** — Open Code Review は diff 生成、コード検索、リポジトリ操作に Git を利用します。
+- **Git >= 2.41** — Git ワークスペース、範囲、単一コミットのレビューに必要です。
+- **SVN >= 1.9** — SVN ワーキングコピーの未コミット変更をレビューする場合のみ必要です。
 
 ### CLI
 
@@ -136,6 +137,10 @@ cd your-project
 
 # ワークスペースモード — ステージ済み・未ステージ・未追跡のすべての変更をレビュー
 ocr review
+
+# SVN ワークスペースモード — 変更、追加、削除、未管理ファイルをレビュー
+# 範囲モードと単一コミットモードは現在 Git 専用です。
+ocr review --repo /path/to/svn-working-copy
 
 # ブランチ範囲 — main から分岐した後の feature-branch の変更をレビュー（マージベースモード）
 ocr review --from main --to feature-branch

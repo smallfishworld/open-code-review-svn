@@ -98,7 +98,8 @@ The agent's strengths are concentrated where they matter most — dynamic decisi
 
 ### Prerequisites
 
-- **Git >= 2.41** — Open Code Review relies on Git for diff generation, code search, and repository operations.
+- **Git >= 2.41** — Required for Git workspace, range, and commit reviews.
+- **SVN >= 1.9** — Required only for reviewing uncommitted changes in an SVN working copy.
 
 ### CLI
 
@@ -136,6 +137,10 @@ cd your-project
 
 # Workspace mode — review all staged, unstaged, and untracked changes
 ocr review
+
+# SVN workspace mode — review modified, added, deleted, and unversioned files
+# Range and commit modes are currently Git-only.
+ocr review --repo /path/to/svn-working-copy
 
 # Branch range — reviews feature-branch's changes since it diverged from main (merge-base mode)
 ocr review --from main --to feature-branch

@@ -98,7 +98,8 @@ Open Code Review 的核心设计理念是将确定性工程与 Agent 结合，�
 
 ### 前置条件
 
-- **Git >= 2.41** — Open Code Review 依赖 Git 进行 diff 生成、代码搜索和仓库操作。
+- **Git >= 2.41** — Git 工作区、区间和单提交审查需要 Git。
+- **SVN >= 1.9** — 仅审查 SVN 工作副本中的未提交变更时需要 SVN。
 
 ### CLI
 
@@ -136,6 +137,10 @@ cd your-project
 
 # 工作区模式 —— 审查所有暂存、未暂存和未跟踪的变更
 ocr review
+
+# SVN 工作区模式 —— 审查修改、新增、删除及未版本控制的文件
+# 区间和单提交模式目前仅支持 Git。
+ocr review --repo /path/to/svn-working-copy
 
 # 分支范围 —— 评审 feature-branch 与 main 分叉后的变更（合并基准模式）
 ocr review --from main --to feature-branch

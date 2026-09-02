@@ -98,7 +98,8 @@ agent의 강점은 동적 판단과 동적 context 검색이 중요한 지점에
 
 ### 사전 요구 사항
 
-- **Git >= 2.41** — Open Code Review는 diff 생성, 코드 검색, 저장소 작업에 Git을 사용합니다.
+- **Git >= 2.41** — Git workspace, range, 단일 commit 리뷰에 필요합니다.
+- **SVN >= 1.9** — SVN working copy의 commit 전 변경 사항을 리뷰할 때만 필요합니다.
 
 ### CLI
 
@@ -136,6 +137,10 @@ cd your-project
 
 # Workspace mode: staged, unstaged, untracked 변경을 모두 리뷰
 ocr review
+
+# SVN workspace mode: 수정, 추가, 삭제 및 version control 미등록 파일 리뷰
+# Range와 단일 commit mode는 현재 Git에서만 지원합니다.
+ocr review --repo /path/to/svn-working-copy
 
 # 브랜치 범위 — main에서 분기된 이후 feature-branch의 변경 사항을 리뷰합니다 (머지베이스 모드)
 ocr review --from main --to feature-branch
