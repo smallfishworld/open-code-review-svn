@@ -138,7 +138,7 @@ cd your-project
 # Workspace mode — review all staged, unstaged, and untracked changes
 ocr review
 
-# SVN workspace mode — review modified, added, deleted, and unversioned files
+# SVN workspace mode — review modified, added, and deleted files
 # Range and commit modes are currently Git-only.
 ocr review --repo /path/to/svn-working-copy
 
@@ -173,7 +173,7 @@ This fork supports pre-commit review of uncommitted changes in an SVN (Apache Su
 Supported in SVN workspace mode:
 
 - Modified, scheduled-for-add, and scheduled-for-delete files reported by `svn status`.
-- Unversioned files and directories, including files discovered recursively inside an unversioned directory.
+- Versioned changes reported by `svn diff`. Run `svn add <path>` before review when a new file should be included; unversioned (`?`) files are intentionally skipped.
 - Text and binary changes, file names containing spaces, and the same review rules and output formats used by Git workspace reviews.
 
 Review the current SVN working copy before committing:

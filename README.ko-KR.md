@@ -138,7 +138,7 @@ cd your-project
 # Workspace mode: staged, unstaged, untracked 변경을 모두 리뷰
 ocr review
 
-# SVN workspace mode: 수정, 추가, 삭제 및 version control 미등록 파일 리뷰
+# SVN workspace mode: 수정, 추가 및 삭제 파일 리뷰
 # Range와 단일 commit mode는 현재 Git에서만 지원합니다.
 ocr review --repo /path/to/svn-working-copy
 
@@ -173,7 +173,7 @@ ocr delegate rule src/main.go src/handler.go
 SVN 작업 공간 모드에서 지원되는 항목:
 
 - `svn status`가 보고하는 수정됨, 추가 예정 및 삭제 예정 파일.
-- 버전 관리되지 않는 파일과 디렉터리(버전 관리되지 않는 디렉터리 내부 파일도 재귀적으로 검색).
+- `svn diff`가 보고하는 버전 관리 변경 사항. 새 파일은 리뷰 전에 `svn add <path>`를 실행해야 하며, 버전 관리되지 않는(`?`) 파일은 의도적으로 제외됩니다.
 - 텍스트 및 바이너리 변경, 공백이 포함된 파일 이름, Git 작업 공간 리뷰와 동일한 리뷰 규칙 및 출력 형식.
 
 커밋하기 전에 현재 SVN 작업 사본을 리뷰합니다:
