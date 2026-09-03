@@ -1,0 +1,138 @@
+name: Publish SVN Fork
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release/npm-svn
+
+env:
+  RELEASE_VERSION: 1.11.2-svn.1
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+          - goos: windows
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build binary
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          suffix=""
+          if [ "$GOOS" = "windows" ]; then suffix=".exe"; fi
+          binary="opencodereview-${GOOS}-${GOARCH}${suffix}"
+          commit=$(git rev-parse --short HEAD)
+          build_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          go build -ldflags "-s -w -X main.Version=v${RELEASE_VERSION} -X main.GitCommit=${commit} -X main.BuildDate=${build_date}" -o "$binary" ./cmd/opencodereview
+          echo "BINARY=$binary" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.BINARY }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: cd dist && sha256sum opencodereview-* | sort > sha256sum.txt
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.RELEASE_VERSION }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: dist/*
+
+  npm-publish:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish platform packages
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          platforms="darwin-arm64:opencodereview-darwin-arm64:opencodereview
+          darwin-x64:opencodereview-darwin-amd64:opencodereview
+          linux-arm64:opencodereview-linux-arm64:opencodereview
+          linux-x64:opencodereview-linux-amd64:opencodereview
+          win32-arm64:opencodereview-windows-arm64.exe:opencodereview.exe
+          win32-x64:opencodereview-windows-amd64.exe:opencodereview.exe"
+
+          for entry in $platforms; do
+            platform_dir="${entry%%:*}"
+            rest="${entry#*:}"
+            dist_binary="${rest%%:*}"
+            dest_name="${rest#*:}"
+            package_dir="npm/${platform_dir}"
+            mkdir -p "${package_dir}/bin"
+            cp "dist/${dist_binary}" "${package_dir}/bin/${dest_name}"
+            chmod 755 "${package_dir}/bin/${dest_name}" 2>/dev/null || true
+            jq --arg version "$RELEASE_VERSION" '.version = $version' "${package_dir}/package.json" > "${package_dir}/package.json.tmp"
+            mv "${package_dir}/package.json.tmp" "${package_dir}/package.json"
+            npm publish "$package_dir" --access public --provenance
+          done
+
+      - name: Publish main package
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          jq --arg version "$RELEASE_VERSION" '
+            .version = $version |
+            .optionalDependencies |= with_entries(.value = $version)
+          ' package.json > package.json.tmp
+          mv package.json.tmp package.json
+          npm publish --access public --provenance

@@ -10,12 +10,12 @@ const IS_WINDOWS = process.platform === "win32";
 const BINARY_FILENAME = IS_WINDOWS ? "opencodereview.exe" : "opencodereview";
 
 const PLATFORM_PKG = {
-  "darwin-arm64": "@alibaba-group/ocr-darwin-arm64",
-  "darwin-x64": "@alibaba-group/ocr-darwin-x64",
-  "linux-arm64": "@alibaba-group/ocr-linux-arm64",
-  "linux-x64": "@alibaba-group/ocr-linux-x64",
-  "win32-arm64": "@alibaba-group/ocr-win32-arm64",
-  "win32-x64": "@alibaba-group/ocr-win32-x64",
+  "darwin-arm64": "@smallfishworld/ocr-darwin-arm64",
+  "darwin-x64": "@smallfishworld/ocr-darwin-x64",
+  "linux-arm64": "@smallfishworld/ocr-linux-arm64",
+  "linux-x64": "@smallfishworld/ocr-linux-x64",
+  "win32-arm64": "@smallfishworld/ocr-win32-arm64",
+  "win32-x64": "@smallfishworld/ocr-win32-x64",
 };
 
 function getPlatformPackageName() {

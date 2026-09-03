@@ -1,7 +1,7 @@
 {
-  "name": "@alibaba-group/open-code-review",
+  "name": "@smallfishworld/open-code-review-svn",
   "version": "0.0.0",
-  "description": "OpenCodeReview CLI — AI-powered code review tool",
+  "description": "OpenCodeReview CLI fork with SVN workspace review support",
   "bin": {
     "ocr": "bin/ocr.js"
   },
@@ -21,22 +21,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alibaba/open-code-review.git"
+    "url": "git+https://github.com/smallfishworld/open-code-review-svn.git"
   },
   "publishConfig": {
     "access": "public"
   },
   "ocrConfig": {
-    "urlPattern": "https://github.com/alibaba/open-code-review/releases/download/v{version}/opencodereview-{os}-{arch}",
-    "checksumPattern": "https://github.com/alibaba/open-code-review/releases/download/v{version}/sha256sum.txt"
+    "urlPattern": "https://github.com/smallfishworld/open-code-review-svn/releases/download/v{version}/opencodereview-{os}-{arch}",
+    "checksumPattern": "https://github.com/smallfishworld/open-code-review-svn/releases/download/v{version}/sha256sum.txt"
   },
   "optionalDependencies": {
-    "@alibaba-group/ocr-darwin-arm64": "0.0.0",
-    "@alibaba-group/ocr-darwin-x64": "0.0.0",
-    "@alibaba-group/ocr-linux-arm64": "0.0.0",
-    "@alibaba-group/ocr-linux-x64": "0.0.0",
-    "@alibaba-group/ocr-win32-arm64": "0.0.0",
-    "@alibaba-group/ocr-win32-x64": "0.0.0"
+    "@smallfishworld/ocr-darwin-arm64": "0.0.0",
+    "@smallfishworld/ocr-darwin-x64": "0.0.0",
+    "@smallfishworld/ocr-linux-arm64": "0.0.0",
+    "@smallfishworld/ocr-linux-x64": "0.0.0",
+    "@smallfishworld/ocr-win32-arm64": "0.0.0",
+    "@smallfishworld/ocr-win32-x64": "0.0.0"
   },
   "engines": {
     "node": ">=14"
