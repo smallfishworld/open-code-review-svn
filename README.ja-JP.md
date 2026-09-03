@@ -14,7 +14,7 @@
   </a>
 </p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@smallfishworld/open-code-review-svn"><img alt="npm" src="https://img.shields.io/npm/v/@smallfishworld/open-code-review-svn?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@alibaba-group/open-code-review"><img alt="npm" src="https://img.shields.io/npm/v/@alibaba-group/open-code-review?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alibaba/open-code-review/release.yml?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/alibaba/open-code-review?style=flat-square" /></a>
   <a href="https://deepwiki.com/alibaba/open-code-review"><img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" /></a>
@@ -106,7 +106,7 @@ Open Code Reviewのコア哲学は、決定論的エンジニアリングとエ�
 #### インストール
 
 ```bash
-npm install -g @smallfishworld/open-code-review-svn
+npm install -g @alibaba-group/open-code-review
 ```
 
 インストール後、`ocr`コマンドがグローバルに利用可能になります。
@@ -138,7 +138,7 @@ cd your-project
 # ワークスペースモード — ステージ済み・未ステージ・未追跡のすべての変更をレビュー
 ocr review
 
-# SVN ワークスペースモード — 変更、追加、削除、未管理ファイルをレビュー
+# SVN ワークスペースモード — 変更、追加、削除ファイルをレビュー
 # 範囲モードと単一コミットモードは現在 Git 専用です。
 ocr review --repo /path/to/svn-working-copy
 
@@ -173,7 +173,7 @@ ocr delegate rule src/main.go src/handler.go
 SVN ワークスペースモードでサポートされる内容：
 
 - `svn status` が報告する変更済み、追加予定、削除予定のファイル。
-- 未管理のファイルとディレクトリ（未管理ディレクトリ内のファイルも再帰的に検出）。
+- `svn diff` が報告するバージョン管理対象の変更。新しいファイルをレビューするには、先に `svn add <path>` を実行してください。未管理（`?`）のファイルは意図的に除外されます。
 - テキストおよびバイナリの変更、空白を含むファイル名、Git ワークスペースレビューと同じルールおよび出力形式。
 
 コミット前に現在の SVN ワーキングコピーをレビューします：

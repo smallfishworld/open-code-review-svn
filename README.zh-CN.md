@@ -14,7 +14,7 @@
   </a>
 </p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@smallfishworld/open-code-review-svn"><img alt="npm" src="https://img.shields.io/npm/v/@smallfishworld/open-code-review-svn?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@alibaba-group/open-code-review"><img alt="npm" src="https://img.shields.io/npm/v/@alibaba-group/open-code-review?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alibaba/open-code-review/release.yml?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/alibaba/open-code-review?style=flat-square" /></a>
   <a href="https://deepwiki.com/alibaba/open-code-review"><img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" /></a>
@@ -106,7 +106,7 @@ Open Code Review 的核心设计理念是将确定性工程与 Agent 结合，�
 #### 安装
 
 ```bash
-npm install -g @smallfishworld/open-code-review-svn
+npm install -g @alibaba-group/open-code-review
 ```
 
 安装后，`ocr` 命令即可全局使用。
@@ -138,7 +138,7 @@ cd your-project
 # 工作区模式 —— 审查所有暂存、未暂存和未跟踪的变更
 ocr review
 
-# SVN 工作区模式 —— 审查修改、新增、删除及未版本控制的文件
+# SVN 工作区模式 —— 审查修改、新增及删除的文件
 # 区间和单提交模式目前仅支持 Git。
 ocr review --repo /path/to/svn-working-copy
 
@@ -173,7 +173,7 @@ ocr delegate rule src/main.go src/handler.go
 SVN 工作区模式当前支持：
 
 - `svn status` 报告的已修改、计划新增和计划删除文件。
-- 未版本控制的文件和目录，包括递归发现未版本控制目录中的文件。
+- 审查 `svn diff` 报告的版本化变更。新文件需要先执行 `svn add <路径>` 才会参与审查；未版本控制的（`?`）文件会被有意跳过。
 - 文本及二进制变更、包含空格的文件名，以及 Git 工作区审查所使用的相同规则与输出格式。
 
 提交前审查当前 SVN 工作副本：

@@ -14,7 +14,7 @@
   </a>
 </p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@smallfishworld/open-code-review-svn"><img alt="npm" src="https://img.shields.io/npm/v/@smallfishworld/open-code-review-svn?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@alibaba-group/open-code-review"><img alt="npm" src="https://img.shields.io/npm/v/@alibaba-group/open-code-review?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alibaba/open-code-review/release.yml?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/alibaba/open-code-review?style=flat-square" /></a>
   <a href="https://deepwiki.com/alibaba/open-code-review"><img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" /></a>
@@ -106,7 +106,7 @@ agent의 강점은 동적 판단과 동적 context 검색이 중요한 지점에
 #### 설치
 
 ```bash
-npm install -g @smallfishworld/open-code-review-svn
+npm install -g @alibaba-group/open-code-review
 ```
 
 설치 후 `ocr` 명령을 전역에서 사용할 수 있습니다.
@@ -138,7 +138,7 @@ cd your-project
 # Workspace mode: staged, unstaged, untracked 변경을 모두 리뷰
 ocr review
 
-# SVN workspace mode: 수정, 추가, 삭제 및 version control 미등록 파일 리뷰
+# SVN workspace mode: 수정, 추가 및 삭제 파일 리뷰
 # Range와 단일 commit mode는 현재 Git에서만 지원합니다.
 ocr review --repo /path/to/svn-working-copy
 
@@ -173,7 +173,7 @@ ocr delegate rule src/main.go src/handler.go
 SVN 작업 공간 모드에서 지원되는 항목:
 
 - `svn status`가 보고하는 수정됨, 추가 예정 및 삭제 예정 파일.
-- 버전 관리되지 않는 파일과 디렉터리(버전 관리되지 않는 디렉터리 내부 파일도 재귀적으로 검색).
+- `svn diff`가 보고하는 버전 관리 변경 사항. 새 파일은 리뷰 전에 `svn add <path>`를 실행해야 하며, 버전 관리되지 않는(`?`) 파일은 의도적으로 제외됩니다.
 - 텍스트 및 바이너리 변경, 공백이 포함된 파일 이름, Git 작업 공간 리뷰와 동일한 리뷰 규칙 및 출력 형식.
 
 커밋하기 전에 현재 SVN 작업 사본을 리뷰합니다:

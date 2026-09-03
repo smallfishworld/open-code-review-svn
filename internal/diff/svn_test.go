@@ -30,29 +30,6 @@ func TestConvertSVNDiffBinary(t *testing.T) {
 	}
 }
 
-func TestUnversionedFilesRecursesAndSorts(t *testing.T) {
-	repo := t.TempDir()
-	for _, name := range []string{"new-dir/z.c", "new-dir/nested/a.c", "single.c"} {
-		path := filepath.Join(repo, filepath.FromSlash(name))
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(path, []byte("content\n"), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	provider := &Provider{repoDir: repo}
-	got := provider.unversionedFiles(map[string]string{
-		"new-dir":   "unversioned",
-		"single.c":  "unversioned",
-		"ignored.c": "ignored",
-	})
-	want := []string{"new-dir/nested/a.c", "new-dir/z.c", "single.c"}
-	if strings.Join(got, "|") != strings.Join(want, "|") {
-		t.Fatalf("unversionedFiles = %v, want %v", got, want)
-	}
-}
-
 func TestSVNWorkspaceProvider(t *testing.T) {
 	if _, err := exec.LookPath("svnadmin"); err != nil {
 		t.Skip("svnadmin is not installed")
@@ -108,18 +85,18 @@ func TestSVNWorkspaceProvider(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(diffs) != 7 {
-		t.Fatalf("got %d diffs, want 7: %+v", len(diffs), diffs)
+	if len(diffs) != 4 {
+		t.Fatalf("got %d diffs, want 4: %+v", len(diffs), diffs)
 	}
 	byPath := make(map[string]bool, len(diffs))
 	for _, diff := range diffs {
 		byPath[diff.NewPath] = diff.IsBinary
 	}
-	if _, ok := byPath["new-dir/nested/child.c"]; !ok {
-		t.Error("nested unversioned file was not included")
+	if _, ok := byPath["new-dir/nested/child.c"]; ok {
+		t.Error("unversioned file must not be included")
 	}
-	if !byPath["asset.bin"] {
-		t.Error("unversioned binary file was not marked binary")
+	if _, ok := byPath["asset.bin"]; ok {
+		t.Error("unversioned binary file must not be included")
 	}
 	if _, ok := byPath["space name.c"]; !ok {
 		t.Error("path containing spaces was not included")

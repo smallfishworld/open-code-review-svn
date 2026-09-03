@@ -14,7 +14,7 @@
   </a>
 </p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@smallfishworld/open-code-review-svn"><img alt="npm" src="https://img.shields.io/npm/v/@smallfishworld/open-code-review-svn?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@alibaba-group/open-code-review"><img alt="npm" src="https://img.shields.io/npm/v/@alibaba-group/open-code-review?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alibaba/open-code-review/release.yml?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/alibaba/open-code-review?style=flat-square" /></a>
   <a href="https://deepwiki.com/alibaba/open-code-review"><img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" /></a>
@@ -106,7 +106,7 @@ The agent's strengths are concentrated where they matter most — dynamic decisi
 #### Install
 
 ```bash
-npm install -g @smallfishworld/open-code-review-svn
+npm install -g @alibaba-group/open-code-review
 ```
 
 After installation, the `ocr` command is available globally.
@@ -138,7 +138,7 @@ cd your-project
 # Workspace mode — review all staged, unstaged, and untracked changes
 ocr review
 
-# SVN workspace mode — review modified, added, deleted, and unversioned files
+# SVN workspace mode — review modified, added, and deleted files
 # Range and commit modes are currently Git-only.
 ocr review --repo /path/to/svn-working-copy
 
@@ -173,7 +173,7 @@ This fork supports pre-commit review of uncommitted changes in an SVN (Apache Su
 Supported in SVN workspace mode:
 
 - Modified, scheduled-for-add, and scheduled-for-delete files reported by `svn status`.
-- Unversioned files and directories, including files discovered recursively inside an unversioned directory.
+- Versioned changes reported by `svn diff`. Run `svn add <path>` before review when a new file should be included; unversioned (`?`) files are intentionally skipped.
 - Text and binary changes, file names containing spaces, and the same review rules and output formats used by Git workspace reviews.
 
 Review the current SVN working copy before committing:
