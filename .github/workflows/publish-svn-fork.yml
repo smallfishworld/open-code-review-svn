@@ -104,6 +104,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::Repository secret NPM_TOKEN is missing or unavailable"
+            exit 1
+          fi
+
           platforms="darwin-arm64:opencodereview-darwin-arm64:opencodereview
           darwin-x64:opencodereview-darwin-amd64:opencodereview
           linux-arm64:opencodereview-linux-arm64:opencodereview
@@ -116,13 +121,18 @@ jobs:
             rest="${entry#*:}"
             dist_binary="${rest%%:*}"
             dest_name="${rest#*:}"
-            package_dir="npm/${platform_dir}"
+            package_dir="./npm/${platform_dir}"
             mkdir -p "${package_dir}/bin"
             cp "dist/${dist_binary}" "${package_dir}/bin/${dest_name}"
             chmod 755 "${package_dir}/bin/${dest_name}" 2>/dev/null || true
             jq --arg version "$RELEASE_VERSION" '.version = $version' "${package_dir}/package.json" > "${package_dir}/package.json.tmp"
             mv "${package_dir}/package.json.tmp" "${package_dir}/package.json"
-            npm publish "$package_dir" --access public --provenance
+            package_name=$(jq -r '.name' "${package_dir}/package.json")
+            if [ "$(npm view "${package_name}@${RELEASE_VERSION}" version 2>/dev/null || true)" = "$RELEASE_VERSION" ]; then
+              echo "Already published: ${package_name}@${RELEASE_VERSION}"
+            else
+              npm publish "$package_dir" --access public --provenance
+            fi
           done
 
       - name: Publish main package
@@ -130,9 +140,18 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::Repository secret NPM_TOKEN is missing or unavailable"
+            exit 1
+          fi
+
           jq --arg version "$RELEASE_VERSION" '
             .version = $version |
             .optionalDependencies |= with_entries(.value = $version)
           ' package.json > package.json.tmp
           mv package.json.tmp package.json
-          npm publish --access public --provenance
+          if [ "$(npm view "@smallfishworld/open-code-review-svn@${RELEASE_VERSION}" version 2>/dev/null || true)" = "$RELEASE_VERSION" ]; then
+            echo "Already published: @smallfishworld/open-code-review-svn@${RELEASE_VERSION}"
+          else
+            npm publish --access public --provenance
+          fi
