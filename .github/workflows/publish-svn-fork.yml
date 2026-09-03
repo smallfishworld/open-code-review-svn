@@ -131,7 +131,7 @@ jobs:
             if [ "$(npm view "${package_name}@${RELEASE_VERSION}" version 2>/dev/null || true)" = "$RELEASE_VERSION" ]; then
               echo "Already published: ${package_name}@${RELEASE_VERSION}"
             else
-              npm publish "$package_dir" --access public --provenance
+              npm publish "$package_dir" --access public --provenance --tag svn
             fi
           done
 
@@ -153,5 +153,5 @@ jobs:
           if [ "$(npm view "@smallfishworld/open-code-review-svn@${RELEASE_VERSION}" version 2>/dev/null || true)" = "$RELEASE_VERSION" ]; then
             echo "Already published: @smallfishworld/open-code-review-svn@${RELEASE_VERSION}"
           else
-            npm publish --access public --provenance
+            npm publish --access public --provenance --tag svn
           fi
