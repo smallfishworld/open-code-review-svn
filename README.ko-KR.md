@@ -166,6 +166,33 @@ ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
 
+### SVN 작업 사본 리뷰
+
+이 포크는 SVN(Apache Subversion) 작업 사본에서 커밋되지 않은 변경 사항을 커밋 전에 리뷰할 수 있습니다. OCR이 작업 사본 루트를 자동으로 감지하므로 루트 또는 어느 하위 디렉터리에서든 명령을 실행할 수 있습니다.
+
+SVN 작업 공간 모드에서 지원되는 항목:
+
+- `svn status`가 보고하는 수정됨, 추가 예정 및 삭제 예정 파일.
+- 버전 관리되지 않는 파일과 디렉터리(버전 관리되지 않는 디렉터리 내부 파일도 재귀적으로 검색).
+- 텍스트 및 바이너리 변경, 공백이 포함된 파일 이름, Git 작업 공간 리뷰와 동일한 리뷰 규칙 및 출력 형식.
+
+커밋하기 전에 현재 SVN 작업 사본을 리뷰합니다:
+
+```bash
+cd /path/to/svn-working-copy
+svn status
+ocr review
+```
+
+작업 사본을 명시적으로 지정하고 결과를 저장할 수도 있습니다:
+
+```bash
+ocr review --repo /path/to/svn-working-copy
+ocr review --repo /path/to/svn-working-copy --format json --output svn-review.json
+```
+
+현재 SVN은 작업 공간 리뷰만 지원합니다. `--from`, `--to`, `--commit`, 세션 재개처럼 Git 기록에 의존하는 모드는 SVN 작업 사본에서 사용할 수 없습니다. SVN에서 무시된 파일은 리뷰되지 않으므로 포함하려면 `svn add`를 실행하거나 SVN ignore 속성을 조정하세요.
+
 ## Documentation
 
 전체 문서는 **[open-codereview.ai/docs](https://open-codereview.ai/docs)** 에서 확인할 수 있습니다:

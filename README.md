@@ -166,6 +166,33 @@ ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
 
+### SVN Workspace Review
+
+This fork supports pre-commit review of uncommitted changes in an SVN (Apache Subversion) working copy. OCR automatically detects the working-copy root, so the command can be run from the root or any subdirectory.
+
+Supported in SVN workspace mode:
+
+- Modified, scheduled-for-add, and scheduled-for-delete files reported by `svn status`.
+- Unversioned files and directories, including files discovered recursively inside an unversioned directory.
+- Text and binary changes, file names containing spaces, and the same review rules and output formats used by Git workspace reviews.
+
+Review the current SVN working copy before committing:
+
+```bash
+cd /path/to/svn-working-copy
+svn status
+ocr review
+```
+
+Or select a working copy explicitly and save the result:
+
+```bash
+ocr review --repo /path/to/svn-working-copy
+ocr review --repo /path/to/svn-working-copy --format json --output svn-review.json
+```
+
+SVN support currently covers workspace review only. Git-specific history modes such as `--from`, `--to`, `--commit`, and session resume are not available for SVN working copies. Files ignored by SVN are not reviewed; use `svn add` or adjust the SVN ignore properties when they should be included.
+
 ## Documentation
 
 Full documentation lives at **[open-codereview.ai/docs](https://open-codereview.ai/docs)**:

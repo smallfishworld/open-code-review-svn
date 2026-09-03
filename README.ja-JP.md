@@ -166,6 +166,33 @@ ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
 
+### SVN ワーキングコピーのレビュー
+
+このフォークは、SVN（Apache Subversion）ワーキングコピー内の未コミット変更をコミット前にレビューできます。OCR はワーキングコピーのルートを自動検出するため、ルートまたは任意のサブディレクトリから実行できます。
+
+SVN ワークスペースモードでサポートされる内容：
+
+- `svn status` が報告する変更済み、追加予定、削除予定のファイル。
+- 未管理のファイルとディレクトリ（未管理ディレクトリ内のファイルも再帰的に検出）。
+- テキストおよびバイナリの変更、空白を含むファイル名、Git ワークスペースレビューと同じルールおよび出力形式。
+
+コミット前に現在の SVN ワーキングコピーをレビューします：
+
+```bash
+cd /path/to/svn-working-copy
+svn status
+ocr review
+```
+
+ワーキングコピーを明示的に指定して結果を保存することもできます：
+
+```bash
+ocr review --repo /path/to/svn-working-copy
+ocr review --repo /path/to/svn-working-copy --format json --output svn-review.json
+```
+
+現在、SVN はワークスペースレビューのみをサポートします。`--from`、`--to`、`--commit`、セッション再開など Git 履歴に依存するモードは SVN ワーキングコピーでは使用できません。SVN によって無視されたファイルはレビューされないため、対象にする場合は `svn add` を実行するか SVN の ignore プロパティを調整してください。
+
 ## ドキュメント
 
 完全なドキュメントは **[open-codereview.ai/docs](https://open-codereview.ai/docs)** にあります：

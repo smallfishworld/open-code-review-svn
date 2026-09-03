@@ -166,6 +166,33 @@ ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
 
+### SVN 工作副本审查
+
+此分支支持在提交前审查 SVN（Apache Subversion）工作副本中尚未提交的变更。OCR 会自动识别工作副本根目录，因此可以在根目录或任意子目录中执行命令。
+
+SVN 工作区模式当前支持：
+
+- `svn status` 报告的已修改、计划新增和计划删除文件。
+- 未版本控制的文件和目录，包括递归发现未版本控制目录中的文件。
+- 文本及二进制变更、包含空格的文件名，以及 Git 工作区审查所使用的相同规则与输出格式。
+
+提交前审查当前 SVN 工作副本：
+
+```bash
+cd /path/to/svn-working-copy
+svn status
+ocr review
+```
+
+也可以显式指定工作副本并保存审查结果：
+
+```bash
+ocr review --repo /path/to/svn-working-copy
+ocr review --repo /path/to/svn-working-copy --format json --output svn-review.json
+```
+
+SVN 当前仅支持工作区审查。`--from`、`--to`、`--commit` 和会话恢复等依赖 Git 历史的模式不适用于 SVN 工作副本。被 SVN 忽略的文件不会参与审查；如需审查，请先执行 `svn add` 或调整 SVN 忽略属性。
+
 ## 文档
 
 完整文档见 **[open-codereview.ai/docs](https://open-codereview.ai/docs)**：
