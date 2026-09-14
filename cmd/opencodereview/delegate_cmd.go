@@ -100,6 +100,9 @@ func loadDelegateContext(opts delegateOptions) (*delegateContext, error) {
 		return nil, err
 	}
 	applyCLIExcludes(cc, splitPaths(opts.excludes))
+	if err := validateRepositoryReviewMode(cc.IsGitRepo, opts.from, opts.to, opts.commit); err != nil {
+		return nil, err
+	}
 
 	// Security: reject ref-option injection.
 	reviewOpts := reviewOptions{from: opts.from, to: opts.to, commit: opts.commit}

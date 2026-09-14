@@ -98,7 +98,8 @@ Open Code Review 的核心设计理念是将确定性工程与 Agent 结合，�
 
 ### 前置条件
 
-- **Git >= 2.41** — Open Code Review 依赖 Git 进行 diff 生成、代码搜索和仓库操作。
+- **Git >= 2.41** — Git 工作区、区间和单提交审查需要 Git。
+- **SVN >= 1.9** — 仅审查 SVN 工作副本中的未提交变更时需要 SVN。
 
 ### CLI
 
@@ -137,6 +138,10 @@ cd your-project
 # 工作区模式 —— 审查所有暂存、未暂存和未跟踪的变更
 ocr review
 
+# SVN 工作区模式 —— 审查修改、新增及删除的文件
+# 区间和单提交模式目前仅支持 Git。
+ocr review --repo /path/to/svn-working-copy
+
 # 分支范围 —— 评审 feature-branch 与 main 分叉后的变更（合并基准模式）
 ocr review --from main --to feature-branch
 
@@ -160,6 +165,33 @@ ocr review --format json --output result.json
 ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
+
+### SVN 工作副本审查
+
+此分支支持在提交前审查 SVN（Apache Subversion）工作副本中尚未提交的变更。OCR 会自动识别工作副本根目录，因此可以在根目录或任意子目录中执行命令。
+
+SVN 工作区模式当前支持：
+
+- `svn status` 报告的已修改、计划新增和计划删除文件。
+- 审查 `svn diff` 报告的版本化变更。新文件需要先执行 `svn add <路径>` 才会参与审查；未版本控制的（`?`）文件会被有意跳过。
+- 文本及二进制变更、包含空格的文件名，以及 Git 工作区审查所使用的相同规则与输出格式。
+
+提交前审查当前 SVN 工作副本：
+
+```bash
+cd /path/to/svn-working-copy
+svn status
+ocr review
+```
+
+也可以显式指定工作副本并保存审查结果：
+
+```bash
+ocr review --repo /path/to/svn-working-copy
+ocr review --repo /path/to/svn-working-copy --format json --output svn-review.json
+```
+
+SVN 当前仅支持工作区审查。`--from`、`--to`、`--commit` 和会话恢复等依赖 Git 历史的模式不适用于 SVN 工作副本。被 SVN 忽略的文件不会参与审查；如需审查，请先执行 `svn add` 或调整 SVN 忽略属性。
 
 ## 文档
 

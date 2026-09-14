@@ -1,5 +1,5 @@
 {
-  "name": "@alibaba-group/ocr-linux-x64",
+  "name": "@smallfishworld/ocr-linux-x64",
   "version": "0.0.0",
   "description": "Platform binary for open-code-review (linux x64)",
   "os": [

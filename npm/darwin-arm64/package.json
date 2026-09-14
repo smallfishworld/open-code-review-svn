@@ -1,5 +1,5 @@
 {
-  "name": "@alibaba-group/ocr-darwin-arm64",
+  "name": "@smallfishworld/ocr-darwin-arm64",
   "version": "0.0.0",
   "description": "Platform binary for open-code-review (darwin arm64)",
   "os": [

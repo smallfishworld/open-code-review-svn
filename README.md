@@ -98,7 +98,8 @@ The agent's strengths are concentrated where they matter most — dynamic decisi
 
 ### Prerequisites
 
-- **Git >= 2.41** — Open Code Review relies on Git for diff generation, code search, and repository operations.
+- **Git >= 2.41** — Required for Git workspace, range, and commit reviews.
+- **SVN >= 1.9** — Required only for reviewing uncommitted changes in an SVN working copy.
 
 ### CLI
 
@@ -137,6 +138,10 @@ cd your-project
 # Workspace mode — review all staged, unstaged, and untracked changes
 ocr review
 
+# SVN workspace mode — review modified, added, and deleted files
+# Range and commit modes are currently Git-only.
+ocr review --repo /path/to/svn-working-copy
+
 # Branch range — reviews feature-branch's changes since it diverged from main (merge-base mode)
 ocr review --from main --to feature-branch
 
@@ -160,6 +165,33 @@ ocr review --format json --output result.json
 ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
+
+### SVN Workspace Review
+
+This fork supports pre-commit review of uncommitted changes in an SVN (Apache Subversion) working copy. OCR automatically detects the working-copy root, so the command can be run from the root or any subdirectory.
+
+Supported in SVN workspace mode:
+
+- Modified, scheduled-for-add, and scheduled-for-delete files reported by `svn status`.
+- Versioned changes reported by `svn diff`. Run `svn add <path>` before review when a new file should be included; unversioned (`?`) files are intentionally skipped.
+- Text and binary changes, file names containing spaces, and the same review rules and output formats used by Git workspace reviews.
+
+Review the current SVN working copy before committing:
+
+```bash
+cd /path/to/svn-working-copy
+svn status
+ocr review
+```
+
+Or select a working copy explicitly and save the result:
+
+```bash
+ocr review --repo /path/to/svn-working-copy
+ocr review --repo /path/to/svn-working-copy --format json --output svn-review.json
+```
+
+SVN support currently covers workspace review only. Git-specific history modes such as `--from`, `--to`, `--commit`, and session resume are not available for SVN working copies. Files ignored by SVN are not reviewed; use `svn add` or adjust the SVN ignore properties when they should be included.
 
 ## Documentation
 

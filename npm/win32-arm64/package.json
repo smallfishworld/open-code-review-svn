@@ -1,5 +1,5 @@
 {
-  "name": "@alibaba-group/ocr-win32-arm64",
+  "name": "@smallfishworld/ocr-win32-arm64",
   "version": "0.0.0",
   "description": "Platform binary for open-code-review (win32 arm64)",
   "os": [

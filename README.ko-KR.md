@@ -98,7 +98,8 @@ agent의 강점은 동적 판단과 동적 context 검색이 중요한 지점에
 
 ### 사전 요구 사항
 
-- **Git >= 2.41** — Open Code Review는 diff 생성, 코드 검색, 저장소 작업에 Git을 사용합니다.
+- **Git >= 2.41** — Git workspace, range, 단일 commit 리뷰에 필요합니다.
+- **SVN >= 1.9** — SVN working copy의 commit 전 변경 사항을 리뷰할 때만 필요합니다.
 
 ### CLI
 
@@ -137,6 +138,10 @@ cd your-project
 # Workspace mode: staged, unstaged, untracked 변경을 모두 리뷰
 ocr review
 
+# SVN workspace mode: 수정, 추가 및 삭제 파일 리뷰
+# Range와 단일 commit mode는 현재 Git에서만 지원합니다.
+ocr review --repo /path/to/svn-working-copy
+
 # 브랜치 범위 — main에서 분기된 이후 feature-branch의 변경 사항을 리뷰합니다 (머지베이스 모드)
 ocr review --from main --to feature-branch
 
@@ -160,6 +165,33 @@ ocr review --format json --output result.json
 ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
+
+### SVN 작업 사본 리뷰
+
+이 포크는 SVN(Apache Subversion) 작업 사본에서 커밋되지 않은 변경 사항을 커밋 전에 리뷰할 수 있습니다. OCR이 작업 사본 루트를 자동으로 감지하므로 루트 또는 어느 하위 디렉터리에서든 명령을 실행할 수 있습니다.
+
+SVN 작업 공간 모드에서 지원되는 항목:
+
+- `svn status`가 보고하는 수정됨, 추가 예정 및 삭제 예정 파일.
+- `svn diff`가 보고하는 버전 관리 변경 사항. 새 파일은 리뷰 전에 `svn add <path>`를 실행해야 하며, 버전 관리되지 않는(`?`) 파일은 의도적으로 제외됩니다.
+- 텍스트 및 바이너리 변경, 공백이 포함된 파일 이름, Git 작업 공간 리뷰와 동일한 리뷰 규칙 및 출력 형식.
+
+커밋하기 전에 현재 SVN 작업 사본을 리뷰합니다:
+
+```bash
+cd /path/to/svn-working-copy
+svn status
+ocr review
+```
+
+작업 사본을 명시적으로 지정하고 결과를 저장할 수도 있습니다:
+
+```bash
+ocr review --repo /path/to/svn-working-copy
+ocr review --repo /path/to/svn-working-copy --format json --output svn-review.json
+```
+
+현재 SVN은 작업 공간 리뷰만 지원합니다. `--from`, `--to`, `--commit`, 세션 재개처럼 Git 기록에 의존하는 모드는 SVN 작업 사본에서 사용할 수 없습니다. SVN에서 무시된 파일은 리뷰되지 않으므로 포함하려면 `svn add`를 실행하거나 SVN ignore 속성을 조정하세요.
 
 ## Documentation
 

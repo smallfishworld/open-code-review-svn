@@ -46,6 +46,59 @@ func TestResolveMaxTokensPrecedence(t *testing.T) {
 	}
 }
 
+func TestValidateRepositoryReviewMode(t *testing.T) {
+	tests := []struct {
+		name             string
+		isGit            bool
+		from, to, commit string
+		wantErr          bool
+	}{
+		{name: "git range", isGit: true, from: "main", to: "feature"},
+		{name: "SVN workspace"},
+		{name: "SVN range", from: "trunk", to: "branch", wantErr: true},
+		{name: "SVN commit", commit: "123", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateRepositoryReviewMode(tt.isGit, tt.from, tt.to, tt.commit)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestResolveWorkingDirSVNSubdirectory(t *testing.T) {
+	if _, err := exec.LookPath("svnadmin"); err != nil {
+		t.Skip("svnadmin is not installed")
+	}
+	repo := filepath.Join(t.TempDir(), "repo")
+	wc := filepath.Join(t.TempDir(), "wc")
+	for _, command := range [][]string{
+		{"svnadmin", "create", repo},
+		{"svn", "checkout", "file://" + repo, wc},
+	} {
+		cmd := exec.Command(command[0], command[1:]...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("%s failed: %v: %s", command[0], err, out)
+		}
+	}
+	subdir := filepath.Join(wc, "src")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got, isGit, err := resolveWorkingDir(subdir, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if isGit {
+		t.Error("SVN working copy reported as Git")
+	}
+	if got != wc {
+		t.Fatalf("resolved root = %q, want %q", got, wc)
+	}
+}
+
 func TestApplyCLIExcludes_Empty(t *testing.T) {
 	cc := &commonContext{FileFilter: &rules.FileFilter{Exclude: []string{"a"}}}
 	applyCLIExcludes(cc, nil)
