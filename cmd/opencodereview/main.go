@@ -15,6 +15,7 @@ import (
 
 func main() {
 	llm.AppVersion = Version
+	llm.InitEmbeddedLoader()
 
 	ctx := context.Background()
 	if telemetry.Init(ctx) {
