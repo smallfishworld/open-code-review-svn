@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -168,7 +169,12 @@ func resolveWorkingDir(input string, requireGit bool) (string, bool, error) {
 	out, err := runGitCmd(absPath, "rev-parse", "--git-dir")
 	isGit := err == nil && len(out) > 0
 	if !isGit && requireGit {
-		return "", false, fmt.Errorf("%s is not a git repository", absPath)
+		cmd := exec.Command("svn", "info", "--show-item", "wc-root", absPath)
+		root, svnErr := cmd.Output()
+		if svnErr != nil || strings.TrimSpace(string(root)) == "" {
+			return "", false, fmt.Errorf("%s is not a git repository or SVN working copy", absPath)
+		}
+		absPath = strings.TrimSpace(string(root))
 	}
 	// #287: git reports diff and `git show HEAD:<path>` paths relative to the
 	// repository root, not the current directory. When `ocr review` runs from a
@@ -190,6 +196,13 @@ func resolveWorkingDir(input string, requireGit bool) (string, bool, error) {
 		absPath = t
 	}
 	return absPath, isGit, nil
+}
+
+func validateRepositoryReviewMode(isGit bool, from, to, commit string) error {
+	if isGit || (from == "" && to == "" && commit == "") {
+		return nil
+	}
+	return fmt.Errorf("SVN working copies support workspace mode only; omit --from, --to, and --commit")
 }
 
 // llmRuntime bundles the LLM-side state both subcommands need once they've
