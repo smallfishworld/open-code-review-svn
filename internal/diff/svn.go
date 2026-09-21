@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alibaba/open-code-review/internal/model"
 )
 
 type svnStatus struct {
@@ -39,14 +38,14 @@ func (p *Provider) runSVN(ctx context.Context, args ...string) ([]byte, error) {
 	return cmd.Output()
 }
 
-func (p *Provider) getSVNWorkspaceDiff(ctx context.Context) ([]model.Diff, error) {
+func (p *Provider) getSVNWorkspaceDiffSet(ctx context.Context) (DiffSet, error) {
 	statusOut, err := p.runSVN(ctx, "status", "--xml")
 	if err != nil {
-		return nil, fmt.Errorf("svn status: %w", err)
+		return DiffSet{}, fmt.Errorf("svn status: %w", err)
 	}
 	var status svnStatus
 	if err := xml.Unmarshal(statusOut, &status); err != nil {
-		return nil, fmt.Errorf("parse svn status: %w", err)
+		return DiffSet{}, fmt.Errorf("parse svn status: %w", err)
 	}
 	items := make(map[string]string, len(status.Entries))
 	for _, entry := range status.Entries {
@@ -61,14 +60,14 @@ func (p *Provider) getSVNWorkspaceDiff(ctx context.Context) ([]model.Diff, error
 
 	diffOut, err := p.runSVN(ctx, "diff", "--notice-ancestry", "--depth", "infinity")
 	if err != nil {
-		return nil, fmt.Errorf("svn diff: %w", err)
+		return DiffSet{}, fmt.Errorf("svn diff: %w", err)
 	}
 	combined := convertSVNDiff(string(diffOut), items)
 	diffs, err := ParseDiffText(ctx, combined, p.repoDir, "", p.runner)
 	if err != nil {
-		return nil, err
+		return DiffSet{}, err
 	}
-	return p.filterDiffs(diffs), nil
+	return p.partitionDiffs(diffs), nil
 }
 
 func convertSVNDiff(input string, statuses map[string]string) string {

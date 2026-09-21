@@ -209,6 +209,14 @@ func TestHandleCompare(t *testing.T) {
 				"newly broken", "still broken", "was broken", "none"},
 		},
 		{
+			name:   "back link returns to sessions",
+			query:  "before=s1&after=s2",
+			status: http.StatusOK,
+			contains: []string{
+				`<a class="back-link" href="/r/myrepo" aria-label="Back to sessions">`,
+			},
+		},
+		{
 			// The CLI renders a suggested patch as a diff (renderComment ->
 			// buildDiffLines); dropping it here would leave the page showing
 			// prose only, which is not the parity #1104 asked for.
@@ -353,12 +361,12 @@ func TestRenderTemplate_SessionsCompareLink(t *testing.T) {
 			name:     "two sessions link newest to next oldest",
 			sessions: []SessionSummary{{SessionID: "s-new"}, {SessionID: "s-old"}},
 			// Rows are newest-first, so the oldest row has no link.
-			contains: []string{"/compare?before=s-old&amp;after=s-new", "<th>Compare</th>"},
+			contains: []string{"/compare?before=s-old&amp;after=s-new", `<th class="col-action">Action</th>`},
 		},
 		{
 			name:     "a single session has nothing to compare against",
 			sessions: []SessionSummary{{SessionID: "only"}},
-			contains: []string{"<th>Compare</th>"},
+			contains: []string{`<th class="col-action">Action</th>`},
 			absent:   []string{"/compare?"},
 		},
 	}
@@ -423,7 +431,7 @@ func TestNewMux_RouteDispatch(t *testing.T) {
 		},
 		{
 			name: "session list", target: "/r/myrepo", status: http.StatusOK,
-			contains: []string{"Sessions:", "<th>Compare</th>"},
+			contains: []string{"Sessions:", `<th class="col-action">Action</th>`},
 		},
 		{
 			name: "repo list", target: "/", status: http.StatusOK,

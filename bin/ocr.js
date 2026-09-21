@@ -67,7 +67,7 @@ if (require.main !== module) {
 const resolved = resolveNativeBinary();
 if (!resolved) {
   console.error(
-    "[ERROR] OpenCodeReview binary not found. Run: npm install -g @alibaba-group/open-code-review"
+    "[ERROR] OpenCodeReview binary not found. Run: npm install -g @smallfishworld/open-code-review-svn"
   );
   process.exit(1);
 }

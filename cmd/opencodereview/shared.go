@@ -42,8 +42,9 @@ type commonContext struct {
 	Resolver   rules.Resolver
 	FileFilter *rules.FileFilter
 	GitRunner  *gitcmd.Runner
-	// IsGitRepo reports whether RepoDir is inside a git repository. It is false
-	// for SVN working copies and for plain directories accepted by scan.
+	// IsGitRepo reports whether RepoDir is inside a git repository. Always
+	// true when requireGit was set; may be false when scan accepts non-git
+	// directories.
 	IsGitRepo bool
 }
 
@@ -100,14 +101,15 @@ func previewMaxTokens(templateDefault, cliOverride int) (int, error) {
 // the global git subprocess limiter. Both review and scan callers go
 // through this so the startup sequence stays consistent.
 //
-// requireVCS=true fails fast when the directory is neither a Git repository nor
-// an SVN working copy. requireVCS=false allows plain directories for scan.
+// requireGit=true fails fast when the directory is not a git repo (review
+// path: diff concept requires git). requireGit=false allows non-git
+// directories (scan path: provider falls back to filepath.Walk).
 //
 // contentRef is the git ref whose file content the rule resolver should
 // inspect when disambiguating ambiguous extensions — derive it via
 // tool.ParseReviewMode(from, to, commit).RefValue(to, commit). Pass "" to
 // read the working tree, which is what scan wants.
-func loadCommonContext(repoDirInput, rulePath, contentRef string, maxTools, maxGitProcs int, requireVCS bool) (*commonContext, error) {
+func loadCommonContext(repoDirInput, rulePath, contentRef string, maxTools, maxGitProcs int, requireGit bool) (*commonContext, error) {
 	tpl, err := template.LoadDefault()
 	if err != nil {
 		return nil, fmt.Errorf("load default template: %w", err)
@@ -119,7 +121,7 @@ func loadCommonContext(repoDirInput, rulePath, contentRef string, maxTools, maxG
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
-	repoDir, isGit, err := resolveWorkingDir(repoDirInput, requireVCS)
+	repoDir, isGit, err := resolveWorkingDir(repoDirInput, requireGit)
 	if err != nil {
 		return nil, err
 	}
@@ -146,10 +148,10 @@ func loadCommonContext(repoDirInput, rulePath, contentRef string, maxTools, maxG
 	}, nil
 }
 
-// resolveWorkingDir returns (absPath, isGitRepo, err). When requireVCS is true,
-// it accepts Git repositories and SVN working copies. Otherwise it also accepts
-// plain directories for scan.
-func resolveWorkingDir(input string, requireVCS bool) (string, bool, error) {
+// resolveWorkingDir returns (absPath, isGitRepo, err). When requireGit is
+// true, returns an error if the directory is not a git repo. When false,
+// returns IsGitRepo=false instead of erroring (scan path uses this).
+func resolveWorkingDir(input string, requireGit bool) (string, bool, error) {
 	if input == "" {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -166,7 +168,7 @@ func resolveWorkingDir(input string, requireVCS bool) (string, bool, error) {
 	}
 	out, err := runGitCmd(absPath, "rev-parse", "--git-dir")
 	isGit := err == nil && len(out) > 0
-	if !isGit && requireVCS {
+	if !isGit && requireGit {
 		cmd := exec.Command("svn", "info", "--show-item", "wc-root", absPath)
 		root, svnErr := cmd.Output()
 		if svnErr != nil || strings.TrimSpace(string(root)) == "" {
@@ -178,9 +180,9 @@ func resolveWorkingDir(input string, requireVCS bool) (string, bool, error) {
 	// repository root, not the current directory. When `ocr review` runs from a
 	// subdirectory of a monorepo, anchor RepoDir at the git top-level so those
 	// root-relative paths resolve for both disk reads and git-show reads.
-	// requireVCS is true only for the review path; scan keeps
+	// requireGit is true only for the review path; scan (requireGit=false) keeps
 	// the CWD so its `git ls-files` walk stays scoped to the subdirectory.
-	if isGit && requireVCS {
+	if isGit && requireGit {
 		// runGitCmdStdout captures stdout only so git stderr notices can't
 		// pollute the resolved path. --show-toplevel fails (or is empty) when
 		// there is no work tree — e.g. a bare repo, where --git-dir succeeds so
@@ -378,12 +380,16 @@ type quietHandle struct {
 }
 
 // isMachineReadable reports whether the output format writes a structured
-// document to stdout that must not be interleaved with progress text. Both
-// json and sarif move [ocr] progress lines off stdout and suppress the trace
-// summary, which is already carried inside the document.
+// document to stdout that must not be interleaved with progress text. json and
+// sarif move [ocr] progress lines off stdout and suppress the trace summary,
+// which is already carried inside the document. html joins them for the second
+// reason resolveOutputWriter consults this: it must not run the exported page
+// through stripAnsiWriter, which would eat the ESC bytes in trace-quoted
+// source. It is not a value validateOutputFormat accepts, so it reaches this
+// function only from `session export`.
 func isMachineReadable(outputFormat string) bool {
 	switch strings.ToLower(strings.TrimSpace(outputFormat)) {
-	case "json", "sarif":
+	case "json", "sarif", "html":
 		return true
 	default:
 		return false

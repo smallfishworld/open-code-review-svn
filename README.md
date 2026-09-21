@@ -9,12 +9,17 @@
   <a href="https://trendshift.io/repositories/41087?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-41087" target="_blank" rel="noopener noreferrer">
     <img src="https://trendshift.io/api/badge/repositories/41087" alt="alibaba%2Fopen-code-review | Trendshift" style="width: 280px; height: 60px;" width="280" height="60" />
   </a>
+</p>
+<p align="center">
   <a href="https://trendshift.io/repositories/41087" target="_blank">
     <img src="https://trendshift.io/api/badge/trendshift/repositories/41087/weekly?language=Go" alt="alibaba%2Fopen-code-review | Trendshift" style="width: 280px; height: 60px;" width="280" height="60" />
   </a>
+  <a href="https://trendshift.io/repositories/41087" target="_blank">
+    <img src="https://trendshift.io/api/badge/trendshift/repositories/41087/monthly?language=Go" alt="alibaba%2Fopen-code-review | Trendshift" style="width: 280px; height: 60px;" width="280" height="60" />
+  </a>
 </p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@alibaba-group/open-code-review"><img alt="npm" src="https://img.shields.io/npm/v/@alibaba-group/open-code-review?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@smallfishworld/open-code-review-svn"><img alt="npm" src="https://img.shields.io/npm/v/@smallfishworld/open-code-review-svn?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alibaba/open-code-review/release.yml?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/alibaba/open-code-review?style=flat-square" /></a>
   <a href="https://deepwiki.com/alibaba/open-code-review"><img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" /></a>
@@ -27,9 +32,10 @@
   <a href="#supported-agents"><img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-supported-blueviolet.svg" /></a>
   <a href="#supported-agents"><img alt="Codex" src="https://img.shields.io/badge/Codex-supported-blueviolet.svg" /></a>
   <a href="#supported-agents"><img alt="Cursor" src="https://img.shields.io/badge/Cursor-supported-blueviolet.svg" /></a>
+  <a href="#supported-agents"><img alt="Kimi Code" src="https://img.shields.io/badge/Kimi_Code-supported-blueviolet.svg" /></a>
 </p>
 <p align="center">
-  English | <a href="README.zh-CN.md">简体中文</a> | <a href="README.ja-JP.md">日本語</a> | <a href="README.ko-KR.md">한국어</a> | <a href="README.ru-RU.md">Русский</a>
+  English | <a href="docs/i18n/README.zh-CN.md">简体中文</a> | <a href="docs/i18n/README.ja-JP.md">日本語</a> | <a href="docs/i18n/README.ko-KR.md">한국어</a> | <a href="docs/i18n/README.ru-RU.md">Русский</a>
 </p>
 
 ---
@@ -106,7 +112,7 @@ The agent's strengths are concentrated where they matter most — dynamic decisi
 #### Install
 
 ```bash
-npm install -g @alibaba-group/open-code-review
+npm install -g @smallfishworld/open-code-review-svn
 ```
 
 After installation, the `ocr` command is available globally.
@@ -138,8 +144,7 @@ cd your-project
 # Workspace mode — review all staged, unstaged, and untracked changes
 ocr review
 
-# SVN workspace mode — review modified, added, and deleted files
-# Range and commit modes are currently Git-only.
+# SVN workspace mode — review versioned uncommitted changes
 ocr review --repo /path/to/svn-working-copy
 
 # Branch range — reviews feature-branch's changes since it diverged from main (merge-base mode)
@@ -168,30 +173,18 @@ ocr delegate rule src/main.go src/handler.go
 
 ### SVN Workspace Review
 
-This fork supports pre-commit review of uncommitted changes in an SVN (Apache Subversion) working copy. OCR automatically detects the working-copy root, so the command can be run from the root or any subdirectory.
+This fork supports pre-commit review of versioned, uncommitted changes in an SVN (Apache Subversion) working copy. OCR automatically resolves the working-copy root, so it can be run from the root or a subdirectory.
 
-Supported in SVN workspace mode:
-
-- Modified, scheduled-for-add, and scheduled-for-delete files reported by `svn status`.
-- Versioned changes reported by `svn diff`. Run `svn add <path>` before review when a new file should be included; unversioned (`?`) files are intentionally skipped.
-- Text and binary changes, file names containing spaces, and the same review rules and output formats used by Git workspace reviews.
-
-Review the current SVN working copy before committing:
+- Modified, scheduled-for-add, and scheduled-for-delete files are reviewed through `svn status --xml` and `svn diff`.
+- Unversioned (`?`) files are intentionally skipped; run `svn add <path>` first when they should be included.
+- Text and binary changes and file names containing spaces are supported.
+- SVN currently supports workspace review only; `--from`, `--to`, `--commit`, and Git-history resume modes remain Git-only.
 
 ```bash
 cd /path/to/svn-working-copy
 svn status
 ocr review
 ```
-
-Or select a working copy explicitly and save the result:
-
-```bash
-ocr review --repo /path/to/svn-working-copy
-ocr review --repo /path/to/svn-working-copy --format json --output svn-review.json
-```
-
-SVN support currently covers workspace review only. Git-specific history modes such as `--from`, `--to`, `--commit`, and session resume are not available for SVN working copies. Files ignored by SVN are not reviewed; use `svn add` or adjust the SVN ignore properties when they should be included.
 
 ## Documentation
 
@@ -207,6 +200,7 @@ Full documentation lives at **[open-codereview.ai/docs](https://open-codereview.
   - [Claude Code](plugins/open-code-review/README.md#claude-code) — install a plugin with review slash commands
   - [Codex](plugins/open-code-review/README.md#codex) — install a plugin with callable review skills
   - [Cursor](plugins/open-code-review/README.md#cursor) — install a plugin with portable review skills
+  - [Kimi Code](plugins/open-code-review/README.md#kimi-code) — install a plugin with review slash commands and skills
   - [OpenCode](plugins/open-code-review/opencode/README.md) — install native review tools and slash commands
   - [QCA Forward](plugins/open-code-review/qca/README.md) — run delegation mode with the QCA host model and a ready-to-publish template
   - [Skill-compatible agents](https://open-codereview.ai/docs/agent-skill) — install the portable agent skill
