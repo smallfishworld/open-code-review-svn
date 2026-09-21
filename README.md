@@ -19,7 +19,7 @@
   </a>
 </p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@alibaba-group/open-code-review"><img alt="npm" src="https://img.shields.io/npm/v/@alibaba-group/open-code-review?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@smallfishworld/open-code-review-svn"><img alt="npm" src="https://img.shields.io/npm/v/@smallfishworld/open-code-review-svn?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alibaba/open-code-review/release.yml?style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/alibaba/open-code-review?style=flat-square" /></a>
   <a href="https://deepwiki.com/alibaba/open-code-review"><img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" /></a>
@@ -104,14 +104,15 @@ The agent's strengths are concentrated where they matter most — dynamic decisi
 
 ### Prerequisites
 
-- **Git >= 2.41** — Open Code Review relies on Git for diff generation, code search, and repository operations.
+- **Git >= 2.41** — Required for Git workspace, range, and commit reviews.
+- **SVN >= 1.9** — Required only for reviewing uncommitted changes in an SVN working copy.
 
 ### CLI
 
 #### Install
 
 ```bash
-npm install -g @alibaba-group/open-code-review
+npm install -g @smallfishworld/open-code-review-svn
 ```
 
 After installation, the `ocr` command is available globally.
@@ -143,6 +144,9 @@ cd your-project
 # Workspace mode — review all staged, unstaged, and untracked changes
 ocr review
 
+# SVN workspace mode — review versioned uncommitted changes
+ocr review --repo /path/to/svn-working-copy
+
 # Branch range — reviews feature-branch's changes since it diverged from main (merge-base mode)
 ocr review --from main --to feature-branch
 
@@ -165,6 +169,21 @@ ocr review --format json --output result.json
 # OCR handles file selection and rule resolution; no LLM configuration needed
 ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
+```
+
+### SVN Workspace Review
+
+This fork supports pre-commit review of versioned, uncommitted changes in an SVN (Apache Subversion) working copy. OCR automatically resolves the working-copy root, so it can be run from the root or a subdirectory.
+
+- Modified, scheduled-for-add, and scheduled-for-delete files are reviewed through `svn status --xml` and `svn diff`.
+- Unversioned (`?`) files are intentionally skipped; run `svn add <path>` first when they should be included.
+- Text and binary changes and file names containing spaces are supported.
+- SVN currently supports workspace review only; `--from`, `--to`, `--commit`, and Git-history resume modes remain Git-only.
+
+```bash
+cd /path/to/svn-working-copy
+svn status
+ocr review
 ```
 
 ## Documentation
