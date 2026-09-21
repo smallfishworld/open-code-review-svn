@@ -175,6 +175,12 @@ OCR assembles the working-tree changes from two git commands:
 This is what you usually want pre-commit. Stage selectively if you want
 narrower scope.
 
+In an SVN working copy, the same command uses `svn status --xml` and `svn diff`
+to review versioned modified, scheduled-added, and scheduled-deleted files.
+Unversioned (`?`) files are skipped until they are added with `svn add`. SVN 1.9+
+is required, and SVN currently supports workspace mode only; range and commit
+modes remain Git-only.
+
 #### Range mode
 
 ```bash
