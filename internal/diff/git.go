@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -159,6 +160,15 @@ type InputResolution struct {
 // endpoint is reported as an empty field, never a fabricated SHA.
 func (p *Provider) ResolveInput(ctx context.Context) InputResolution {
 	if p.svn {
+		switch p.mode {
+		case ModeCommit:
+			n, err := strconv.ParseUint(p.commit, 10, 64)
+			if err == nil && n > 0 {
+				return InputResolution{ResolvedBase: strconv.FormatUint(n-1, 10), ResolvedHead: p.commit, ExactRange: strconv.FormatUint(n-1, 10) + ".." + p.commit}
+			}
+		case ModeRange:
+			return InputResolution{ResolvedBase: p.from, ResolvedHead: p.to, ExactRange: p.from + ".." + p.to}
+		}
 		return InputResolution{}
 	}
 	switch p.mode {
@@ -221,6 +231,9 @@ func (p *Provider) GetDiff(ctx context.Context) ([]model.Diff, error) {
 // built-in directory rules. It preserves GetDiff's filtering behavior while
 // allowing callers that report the whole Git changeset to show those exclusions.
 func (p *Provider) GetDiffSet(ctx context.Context) (DiffSet, error) {
+	if p.svn && p.mode != ModeWorkspace {
+		return p.getSVNRevisionDiffSet(ctx)
+	}
 	var combined strings.Builder
 
 	switch p.mode {

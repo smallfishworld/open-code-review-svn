@@ -156,6 +156,15 @@ func finalizeDiff(ctx context.Context, d *model.Diff, repoDir string, ref string
 	if d.IsBinary {
 		return
 	}
+	if strings.HasPrefix(ref, "svn:") {
+		content, err := ReadSVNRevisionFile(ctx, repoDir, d.NewPath, strings.TrimPrefix(ref, "svn:"))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[ocr] WARNING: cannot read SVN file %s at %s: %v\n", d.NewPath, ref, err)
+		} else {
+			d.NewFileContent = content
+		}
+		return
+	}
 	if ref != "" {
 		args := []string{"-c", "core.quotepath=false", "show", "--end-of-options", ref + ":" + d.NewPath}
 		var output []byte

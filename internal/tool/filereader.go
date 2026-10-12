@@ -5,6 +5,7 @@ package tool
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibaba/open-code-review/internal/diff"
 	"github.com/alibaba/open-code-review/internal/gitcmd"
 	"github.com/alibaba/open-code-review/internal/pathutil"
 )
@@ -62,6 +64,7 @@ type FileReader struct {
 	// Empty for ModeWorkspace.
 	Ref    string
 	Runner *gitcmd.Runner
+	SVN    bool // SVN history uses svn cat rather than git show
 }
 
 // Read returns the full content of a file path (relative to RepoDir),
@@ -69,6 +72,9 @@ type FileReader struct {
 // - Workspace: reads directly from the filesystem.
 // - Range / Commit: uses `git show <Ref>:<path>` to read at the given ref.
 func (fr *FileReader) Read(ctx context.Context, path string) (string, error) {
+	if fr.SVN && fr.Mode != ModeWorkspace {
+		return diff.ReadSVNRevisionFile(ctx, fr.RepoDir, path, fr.Ref)
+	}
 	switch fr.Mode {
 	case ModeWorkspace:
 		return fr.readFromDisk(path)
@@ -140,6 +146,11 @@ func (fr *FileReader) readFromGitShow(parentCtx context.Context, path string) (s
 // ReadLines returns a window of lines from the file plus the total line count.
 // startLine is 1-based; maxLines is the maximum number of lines to collect.
 func (fr *FileReader) ReadLines(ctx context.Context, path string, startLine, maxLines int) ([]string, int, error) {
+	if fr.SVN && fr.Mode != ModeWorkspace {
+		content, err := fr.Read(ctx, path)
+		if err != nil { return nil, 0, err }
+		return scanLines(bytes.NewBufferString(content), startLine, maxLines)
+	}
 	switch fr.Mode {
 	case ModeWorkspace:
 		return fr.readLinesFromDisk(path, startLine, maxLines)

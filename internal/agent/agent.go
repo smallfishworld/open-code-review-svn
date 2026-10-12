@@ -571,6 +571,16 @@ func (a *Agent) newDiffProvider() *diff.Provider {
 		}
 	}
 
+	if diff.IsSVNWorkingCopy(a.args.RepoDir) {
+		switch {
+		case commit != "":
+			return diff.NewSVNCommitProvider(a.args.RepoDir, commit, a.args.GitRunner)
+		case from != "" && to != "":
+			return diff.NewSVNRangeProvider(a.args.RepoDir, from, to, a.args.GitRunner)
+		default:
+			return diff.NewWorkspaceProvider(a.args.RepoDir, a.args.GitRunner)
+		}
+	}
 	switch {
 	case commit != "":
 		return diff.NewCommitProvider(a.args.RepoDir, commit, a.args.GitRunner)
