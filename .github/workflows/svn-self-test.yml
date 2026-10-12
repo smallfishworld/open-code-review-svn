@@ -1,7 +1,9 @@
 name: SVN Revision Self Test
 on:
   push:
-    branches: [feat/sync-upstream-svn-revision-review-20261012]
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
