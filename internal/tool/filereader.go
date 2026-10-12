@@ -148,7 +148,9 @@ func (fr *FileReader) readFromGitShow(parentCtx context.Context, path string) (s
 func (fr *FileReader) ReadLines(ctx context.Context, path string, startLine, maxLines int) ([]string, int, error) {
 	if fr.SVN && fr.Mode != ModeWorkspace {
 		content, err := fr.Read(ctx, path)
-		if err != nil { return nil, 0, err }
+		if err != nil {
+			return nil, 0, err
+		}
 		return scanLines(bytes.NewBufferString(content), startLine, maxLines)
 	}
 	switch fr.Mode {

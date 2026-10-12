@@ -221,9 +221,13 @@ func validateRepositoryReviewMode(isGit bool, from, to, commit string) error {
 		return fmt.Errorf("SVN revision range requires both --from and --to")
 	}
 	start, err := parseSVNRevision(from)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	end, err := parseSVNRevision(to)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	if start >= end {
 		return fmt.Errorf("SVN revision range requires --from < --to")
 	}
@@ -231,15 +235,21 @@ func validateRepositoryReviewMode(isGit bool, from, to, commit string) error {
 }
 
 func parseSVNRevision(raw string) (uint64, error) {
-	if raw == "" { return 0, fmt.Errorf("SVN revision cannot be empty") }
+	if raw == "" {
+		return 0, fmt.Errorf("SVN revision cannot be empty")
+	}
 	for _, ch := range raw {
 		if ch < '0' || ch > '9' {
 			return 0, fmt.Errorf("SVN revision %q must be a positive decimal number", raw)
 		}
 	}
 	rev, err := strconv.ParseUint(raw, 10, 64)
-	if err != nil { return 0, fmt.Errorf("invalid SVN revision %q: %w", raw, err) }
-	if rev == 0 { return 0, fmt.Errorf("SVN revision must be greater than zero") }
+	if err != nil {
+		return 0, fmt.Errorf("invalid SVN revision %q: %w", raw, err)
+	}
+	if rev == 0 {
+		return 0, fmt.Errorf("SVN revision must be greater than zero")
+	}
 	return rev, nil
 }
 

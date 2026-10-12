@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/alibaba/open-code-review/internal/gitcmd"
-
 )
 
 type svnStatus struct {
@@ -122,6 +121,7 @@ func (p *Provider) svnRemoteIdentity(ctx context.Context) string {
 	}
 	return canonicalRemote(strings.TrimSpace(string(out)))
 }
+
 // NewSVNCommitProvider selects the changes introduced by a single SVN revision.
 func NewSVNCommitProvider(repoDir, revision string, runner *gitcmd.Runner) *Provider {
 	return &Provider{repoDir: repoDir, mode: ModeCommit, commit: revision, runner: runner, svn: true}
@@ -163,7 +163,9 @@ func (p *Provider) getSVNRevisionDiffSet(ctx context.Context) (DiffSet, error) {
 	}
 	converted := convertSVNDiff(string(out), nil)
 	diffs, err := ParseDiffText(ctx, converted, p.repoDir, "svn:"+target, p.runner)
-	if err != nil { return DiffSet{}, err }
+	if err != nil {
+		return DiffSet{}, err
+	}
 	return p.partitionDiffs(diffs), nil
 }
 
@@ -185,7 +187,9 @@ func ReadSVNRevisionFile(ctx context.Context, root, relativePath, revision strin
 	info := exec.CommandContext(ctx, "svn", "info", "--show-item", "url")
 	info.Dir = root
 	rootURL, err := info.Output()
-	if err != nil { return "", fmt.Errorf("svn info url: %w", err) }
+	if err != nil {
+		return "", fmt.Errorf("svn info url: %w", err)
+	}
 	u, err := url.Parse(strings.TrimSpace(string(rootURL)))
 	if err != nil || u.Scheme == "" {
 		return "", fmt.Errorf("invalid SVN working copy URL")
@@ -196,6 +200,8 @@ func ReadSVNRevisionFile(ctx context.Context, root, relativePath, revision strin
 	cmd := exec.CommandContext(ctx, "svn", "cat", "-r", revision, "--", targetURL)
 	cmd.Dir = root
 	output, err := cmd.Output()
-	if err != nil { return "", fmt.Errorf("svn cat -r %s %q: %w", revision, clean, err) }
+	if err != nil {
+		return "", fmt.Errorf("svn cat -r %s %q: %w", revision, clean, err)
+	}
 	return string(output), nil
 }

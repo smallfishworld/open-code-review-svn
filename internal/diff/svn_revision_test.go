@@ -15,18 +15,24 @@ import (
 // The checkout deliberately contains uncommitted edits when testing history:
 // revision reviews must read remote snapshots, not current disk contents.
 func TestSVNRevisionProviders(t *testing.T) {
-	if _, err := exec.LookPath("svnadmin"); err != nil { t.Skip("svnadmin is not installed") }
-	if _, err := exec.LookPath("svn"); err != nil { t.Skip("svn is not installed") }
+	if _, err := exec.LookPath("svnadmin"); err != nil {
+		t.Skip("svnadmin is not installed")
+	}
+	if _, err := exec.LookPath("svn"); err != nil {
+		t.Skip("svn is not installed")
+	}
 
 	repo := filepath.Join(t.TempDir(), "repository")
 	wc := filepath.Join(t.TempDir(), "working-copy")
 	runTestCommand(t, "", "svnadmin", "create", repo)
-	runTestCommand(t, "", "svn", "checkout", "file://" + filepath.ToSlash(repo), wc)
+	runTestCommand(t, "", "svn", "checkout", "file://"+filepath.ToSlash(repo), wc)
 	main := filepath.Join(wc, "main.c")
 	old := filepath.Join(wc, "obsolete.c")
 	write := func(path, val string) {
 		t.Helper()
-		if err := os.WriteFile(path, []byte(val), 0o644); err != nil { t.Fatal(err) }
+		if err := os.WriteFile(path, []byte(val), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	write(main, "int number = 1;\n")
@@ -49,7 +55,9 @@ func TestSVNRevisionProviders(t *testing.T) {
 
 	commit := NewSVNCommitProvider(wc, "2", nil)
 	set, err := commit.GetDiffSet(ctx)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	seen := map[string]bool{}
 	for _, d := range set.Included {
 		seen[d.NewPath] = true
@@ -68,11 +76,17 @@ func TestSVNRevisionProviders(t *testing.T) {
 
 	rng := NewSVNRangeProvider(wc, "1", "3", nil)
 	diffs, err := rng.GetDiff(ctx)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	foundDeleted, foundChanged := false, false
 	for _, d := range diffs {
-		if d.NewPath == "/dev/null" && d.OldPath == "obsolete.c" && d.IsDeleted { foundDeleted = true }
-		if d.NewPath == "main.c" && d.NewFileContent == "int number = 3;\n" { foundChanged = true }
+		if d.NewPath == "/dev/null" && d.OldPath == "obsolete.c" && d.IsDeleted {
+			foundDeleted = true
+		}
+		if d.NewPath == "main.c" && d.NewFileContent == "int number = 3;\n" {
+			foundChanged = true
+		}
 	}
 	if !foundDeleted || !foundChanged {
 		t.Fatalf("incorrect SVN range r1:r3: deleted=%v changed=%v diffs=%+v", foundDeleted, foundChanged, diffs)
