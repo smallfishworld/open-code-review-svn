@@ -1,0 +1,44 @@
+name: SVN Revision Self Test
+on:
+  push:
+    branches: [feat/sync-upstream-svn-revision-review-20261012]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  svn-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install Subversion
+        run: |
+          if ! command -v svnadmin >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y subversion
+          fi
+          svn --version --quiet
+          go version
+      - name: Check formatting of touched files
+        run: |
+          set -e
+          files="cmd/opencodereview/review_cmd.go cmd/opencodereview/shared.go cmd/opencodereview/shared_test.go cmd/opencodereview/delegate_cmd.go internal/agent/agent.go internal/diff/git.go internal/diff/parser.go internal/diff/svn.go internal/diff/svn_revision_test.go internal/tool/filereader.go"
+          test -z "$(gofmt -l $files)"
+      - name: Build CLI
+        run: go build ./cmd/opencodereview
+      - name: Run SVN diff tests
+        run: go test -count=1 -v ./internal/diff -run 'Test(SVN|ConvertSVN)'
+      - name: Run review validation tests
+        run: go test -count=1 -v ./cmd/opencodereview -run 'Test(ValidateRepositoryReviewMode|ResolveWorkingDirSVNSubdirectory)'
+      - name: Run file reading tests
+        run: go test -count=1 ./internal/tool
+      - name: Run all Go tests
+        run: go test -count=1 ./...
+      - name: Verify version and help
+        run: |
+          go run ./cmd/opencodereview --version
+          go run ./cmd/opencodereview review --help | grep -F 'Review a specific SVN revision'
