@@ -100,8 +100,8 @@ func loadDelegateContext(opts delegateOptions) (*delegateContext, error) {
 		return nil, err
 	}
 	applyCLIExcludes(cc, splitPaths(opts.excludes))
-	if err := validateRepositoryReviewMode(cc.IsGitRepo, opts.from, opts.to, opts.commit); err != nil {
-		return nil, err
+	if !cc.IsGitRepo && (opts.from != "" || opts.to != "" || opts.commit != "") {
+		return nil, fmt.Errorf("SVN revision selection is supported by ocr review, not ocr delegate")
 	}
 
 	// Security: reject ref-option injection.

@@ -67,6 +67,10 @@ var reviewCmd = &cobra.Command{
   # Review uncommitted changes in an SVN working copy
   ocr review --repo /path/to/svn-working-copy
 
+  # Review a specific SVN revision or a range of SVN revisions
+  ocr review --repo /path/to/svn-working-copy --commit 1234
+  ocr review --repo /path/to/svn-working-copy --from 1200 --to 1234
+
   # Review a branch against its base (merge-base mode)
   ocr review --from master --to dev-ref
 
@@ -147,8 +151,10 @@ func executeReviewContext(ctx context.Context, opts reviewOptions) (retErr error
 	}
 
 	// Security (#112): reject ref-option injection before any git invocation.
-	if err := validateReviewRefs(cc.RepoDir, opts); err != nil {
-		return err
+	if cc.IsGitRepo {
+		if err := validateReviewRefs(cc.RepoDir, opts); err != nil {
+			return err
+		}
 	}
 
 	bg, err := resolveBackground(cc.RepoDir, opts.background, opts.backgroundFile, opts.commit)
@@ -209,6 +215,7 @@ func executeReviewContext(ctx context.Context, opts reviewOptions) (retErr error
 		Mode:    mode,
 		Ref:     fileReadRef(mode, opts, sealedInput),
 		Runner:  cc.GitRunner,
+		SVN:     !cc.IsGitRepo,
 	}
 	tools := buildToolRegistry(rt.Collector, fileReader)
 

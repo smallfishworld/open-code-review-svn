@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -125,6 +126,11 @@ func loadCommonContext(repoDirInput, rulePath, contentRef string, maxTools, maxG
 	if err != nil {
 		return nil, err
 	}
+	// Numeric SVN revisions are not Git refs. Do not git-show them when
+	// looking up extension-specific review rules.
+	if !isGit {
+		contentRef = ""
+	}
 
 	// Built before the resolver: the sniffer reads file content at contentRef
 	// through this limiter.
@@ -198,11 +204,43 @@ func resolveWorkingDir(input string, requireGit bool) (string, bool, error) {
 	return absPath, isGit, nil
 }
 
+// validateRepositoryReviewMode retains Git ref semantics while allowing
+// numeric Subversion revisions in review --commit/--from/--to.
 func validateRepositoryReviewMode(isGit bool, from, to, commit string) error {
 	if isGit || (from == "" && to == "" && commit == "") {
 		return nil
 	}
-	return fmt.Errorf("SVN working copies support workspace mode only; omit --from, --to, and --commit")
+	if commit != "" {
+		if from != "" || to != "" {
+			return fmt.Errorf("SVN --commit cannot be combined with --from or --to")
+		}
+		_, err := parseSVNRevision(commit)
+		return err
+	}
+	if from == "" || to == "" {
+		return fmt.Errorf("SVN revision range requires both --from and --to")
+	}
+	start, err := parseSVNRevision(from)
+	if err != nil { return err }
+	end, err := parseSVNRevision(to)
+	if err != nil { return err }
+	if start >= end {
+		return fmt.Errorf("SVN revision range requires --from < --to")
+	}
+	return nil
+}
+
+func parseSVNRevision(raw string) (uint64, error) {
+	if raw == "" { return 0, fmt.Errorf("SVN revision cannot be empty") }
+	for _, ch := range raw {
+		if ch < '0' || ch > '9' {
+			return 0, fmt.Errorf("SVN revision %q must be a positive decimal number", raw)
+		}
+	}
+	rev, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil { return 0, fmt.Errorf("invalid SVN revision %q: %w", raw, err) }
+	if rev == 0 { return 0, fmt.Errorf("SVN revision must be greater than zero") }
+	return rev, nil
 }
 
 // llmRuntime bundles the LLM-side state both subcommands need once they've
