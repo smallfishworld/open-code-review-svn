@@ -20,7 +20,7 @@
 </p>
 <p align="center">
   <a href="https://www.npmjs.com/package/@smallfishworld/open-code-review-svn"><img alt="npm" src="https://img.shields.io/npm/v/@smallfishworld/open-code-review-svn?style=flat-square" /></a>
-  <a href="https://github.com/alibaba/open-code-review/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alibaba/open-code-review/release.yml?style=flat-square" /></a>
+  <a href="https://github.com/smallfishworld/open-code-review-svn/actions/workflows/svn-self-test.yml"><img alt="SVN CI" src="https://img.shields.io/github/actions/workflow/status/smallfishworld/open-code-review-svn/svn-self-test.yml?branch=main&amp;style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/alibaba/open-code-review?style=flat-square" /></a>
   <a href="https://deepwiki.com/alibaba/open-code-review"><img alt="Ask DeepWiki" src="https://img.shields.io/badge/Ask-DeepWiki-blue?style=flat-square" /></a>
   <a href="https://www.bestpractices.dev/projects/13328"><img alt="OpenSSF Best Practices" src="https://img.shields.io/badge/OpenSSF-Gold-D4AF37?style=flat-square" /></a>
@@ -40,11 +40,17 @@
 
 ---
 
+## About this SVN-enabled fork
+
+This repository, [smallfishworld/open-code-review-svn](https://github.com/smallfishworld/open-code-review-svn), is an **SVN-enabled fork** of the upstream [Alibaba OpenCodeReview](https://github.com/alibaba/open-code-review) project. It keeps the upstream Git review features while adding Subversion (SVN) working-copy and historical revision reviews.
+
+**Current fork release:** [v1.12.13-svn.1](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1) · [npm package](https://www.npmjs.com/package/@smallfishworld/open-code-review-svn) · [SVN CLI reference](pages/src/content/docs/en/cli-reference.md)
+
 ## What is Open Code Review?
 
 Open Code Review is an AI-powered code review CLI tool. It originated as Alibaba Group's internal official AI code review assistant — over the past two years, it has served tens of thousands of developers and identified millions of code defects. After thorough validation at massive scale, we incubated it into an open source project for the community. Simply configure a model endpoint to get started.
 
-It reads Git diffs, sends changed files to a configurable LLM via an agent with tool-use capabilities, and generates structured review comments with line-level precision. The agent can read full file contents, search the codebase, inspect other changed files for context, and produce deep reviews — not just surface-level diff feedback. Beyond diff review, `ocr scan` reviews entire files for auditing unfamiliar codebases or directories that have no meaningful diff.
+It reads Git or SVN diffs, sends changed files to a configurable LLM via an agent with tool-use capabilities, and generates structured review comments with line-level precision. The agent can read full file contents, search the codebase, inspect other changed files for context, and produce deep reviews — not just surface-level diff feedback. Beyond diff review, `ocr scan` reviews entire files for auditing unfamiliar codebases or directories that have no meaningful diff.
 
 Visit the [official website](https://open-codereview.ai) for more details.
 
@@ -105,19 +111,23 @@ The agent's strengths are concentrated where they matter most — dynamic decisi
 ### Prerequisites
 
 - **Git >= 2.41** — Required for Git workspace, range, and commit reviews.
-- **SVN >= 1.9** — Required only for reviewing uncommitted changes in an SVN working copy.
+- **SVN >= 1.9** — Required for SVN working-copy and historical revision reviews (Git is not needed for SVN diff generation).
 
 ### CLI
 
 #### Install
 
 ```bash
-npm install -g @smallfishworld/open-code-review-svn
+# Install the tested fork release
+npm install -g @smallfishworld/open-code-review-svn@1.12.13-svn.1
+
+# Or track the moving SVN release tag
+npm install -g @smallfishworld/open-code-review-svn@svn
 ```
 
 After installation, the `ocr` command is available globally.
 
-For other installation methods (install script, GitHub Release binary, from source), see [Installation](https://open-codereview.ai/docs/installation).
+For offline installation, download the matching Windows, macOS, or Linux binary (and `sha256sum.txt`) from the [fork's GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1). General upstream installation documentation is available at [Installation](https://open-codereview.ai/docs/installation); its upstream npm package is **not** this SVN-enabled fork.
 
 #### Quick Start
 
@@ -141,16 +151,25 @@ For CLI setup, environment variables, custom providers, and other advanced confi
 ```bash
 cd your-project
 
-# Workspace mode — review all staged, unstaged, and untracked changes
+# Git workspace mode — review staged, unstaged, and untracked changes
 ocr review
 
-# SVN workspace mode — review versioned uncommitted changes
+# SVN working copy — review versioned, uncommitted changes
 ocr review --repo /path/to/svn-working-copy
 
-# Branch range — reviews feature-branch's changes since it diverged from main (merge-base mode)
+# SVN single revision (r1234 vs r1233)
+ocr review --repo /path/to/svn-working-copy --commit 1234
+
+# SVN revision range (r1200 vs r1234 snapshots)
+ocr review --repo /path/to/svn-working-copy --from 1200 --to 1234
+
+# SVN preview (no LLM call)
+ocr review --repo /path/to/svn-working-copy --commit 1234 --preview
+
+# Git branch range — compare from merge-base to feature-branch
 ocr review --from main --to feature-branch
 
-# Single commit
+# Git single commit
 ocr review --commit abc123
 
 # Resume an interrupted range or commit review
@@ -171,20 +190,45 @@ ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
 
-### SVN Workspace Review
+### SVN Review: Working Copy, Single Revision, and Revision Range
 
-This fork supports pre-commit review of versioned, uncommitted changes in an SVN (Apache Subversion) working copy. OCR automatically resolves the working-copy root, so it can be run from the root or a subdirectory.
+The fork automatically detects SVN working copies and resolves their root (including when invoked from a nested directory). The **same `ocr review` command** supports three SVN input modes:
 
-- Modified, scheduled-for-add, and scheduled-for-delete files are reviewed through `svn status --xml` and `svn diff`.
-- Unversioned (`?`) files are intentionally skipped; run `svn add <path>` first when they should be included.
-- Text and binary changes and file names containing spaces are supported.
-- SVN supports working-copy review and numeric revision review with `--commit` or `--from` / `--to`; Git-history resume semantics do not apply to SVN.
+| Mode | Example | What is reviewed |
+|------|---------|------------------|
+| Uncommitted working copy | `ocr review` | Versioned local changes reported by `svn status --xml` and `svn diff` |
+| Single revision | `ocr review --commit 1234` | Changes introduced by SVN **r1234**, compared with r1233 |
+| Revision range | `ocr review --from 1200 --to 1234` | Cumulative difference between repository snapshots at **r1200** and **r1234** |
 
 ```bash
 cd /path/to/svn-working-copy
+
+# Review changes before committing (including scheduled adds and deletes)
 svn status
+ocr review --preview                  # list candidate files without calling an LLM
 ocr review
+
+# Review a historical SVN revision
+ocr review --commit 1234 --preview
+ocr review --commit 1234
+
+# Review a revision range
+ocr review --from 1200 --to 1234 --preview --format json
+ocr review --from 1200 --to 1234
+
+# Explicit working-copy path also works
+ocr review --repo /path/to/svn-working-copy --commit 1234
 ```
+
+**Behavior and limitations**
+
+- SVN revisions must be **positive decimal numbers without an `r` prefix**. Range mode requires both `--from` and `--to`, with `--from` less than `--to`. Do not combine `--commit` with range flags.
+- Historical review uses `svn diff` and reads file contents at the requested SVN revision with `svn cat`, so **uncommitted local edits do not change the historical snapshot being reviewed**.
+- In working-copy mode, unversioned (`?`) files are skipped until `svn add <path>` is run. Scheduled additions, deletions, filenames with spaces, and UTF-8 filenames are covered by SVN tests. Binary changes are detected but are not treated as reviewable source text.
+- `--preview` runs file selection without invoking an LLM; use it to verify scope before spending model tokens.
+- Git-style `--resume` of historical reviews is **not a supported SVN workflow**. Git `--commit` and `--from`/`--to` continue to accept Git refs with their original Git semantics.
+
+See the [fork's source-level CLI reference](pages/src/content/docs/en/cli-reference.md) and [v1.12.13-svn.1 binaries](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1).
 
 ## Documentation
 
