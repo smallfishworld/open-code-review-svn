@@ -49,11 +49,12 @@ const (
 	ModeRange                 // merge-base(from,to)..to
 )
 
-// Provider retrieves and parse git diffs from a repository.
+// Provider retrieves and parses diffs from a Git repository or SVN working copy.
 type Provider struct {
 	repoDir string
 	mode    Mode
 	runner  *gitcmd.Runner
+	svn     bool
 
 	// Range mode parameters
 	from, to string // from/to refs for range comparison
@@ -123,6 +124,7 @@ func NewWorkspaceProvider(repoDir string, runner *gitcmd.Runner) *Provider {
 		repoDir: repoDir,
 		mode:    ModeWorkspace,
 		runner:  runner,
+		svn:     isSVNWorkingCopy(repoDir),
 	}
 }
 
@@ -156,6 +158,9 @@ type InputResolution struct {
 // It runs read-only git queries and never returns an error: an unresolvable
 // endpoint is reported as an empty field, never a fabricated SHA.
 func (p *Provider) ResolveInput(ctx context.Context) InputResolution {
+	if p.svn {
+		return InputResolution{}
+	}
 	switch p.mode {
 	case ModeRange:
 		base := p.MergeBase(ctx)
@@ -242,6 +247,9 @@ func (p *Provider) GetDiffSet(ctx context.Context) (DiffSet, error) {
 		combined.WriteString(out)
 
 	case ModeWorkspace:
+		if p.svn {
+			return p.getSVNWorkspaceDiffSet(ctx)
+		}
 		// The stderr returned here is the fallback's (`git diff --staged`), and
 		// that is the one worth surfacing. Reaching the fallback at all means
 		// `git diff HEAD` already failed, and in the case the fallback exists
@@ -472,6 +480,9 @@ func (p *Provider) computeMergeBase(ctx context.Context, from, to string) string
 // it was cloned. It returns "" when there is no origin remote, or when origin is
 // a local-filesystem remote (the caller then omits repository identity).
 func (p *Provider) RemoteIdentity(ctx context.Context) string {
+	if p.svn {
+		return p.svnRemoteIdentity(ctx)
+	}
 	out, err := p.runGit(ctx, "remote", "get-url", "origin")
 	if err != nil {
 		return ""
