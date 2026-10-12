@@ -55,8 +55,16 @@ func TestValidateRepositoryReviewMode(t *testing.T) {
 	}{
 		{name: "git range", isGit: true, from: "main", to: "feature"},
 		{name: "SVN workspace"},
-		{name: "SVN range", from: "trunk", to: "branch", wantErr: true},
-		{name: "SVN commit", commit: "123", wantErr: true},
+		{name: "SVN commit", commit: "123"},
+		{name: "SVN range", from: "120", to: "123"},
+		{name: "SVN invalid range", from: "trunk", to: "branch", wantErr: true},
+		{name: "SVN reversed range", from: "123", to: "120", wantErr: true},
+		{name: "SVN equal range", from: "123", to: "123", wantErr: true},
+		{name: "SVN incomplete range", from: "123", wantErr: true},
+		{name: "SVN bad commit", commit: "-1", wantErr: true},
+		{name: "SVN invalid commit", commit: "12:15", wantErr: true},
+		{name: "SVN zero commit", commit: "0", wantErr: true},
+		{name: "SVN mixed selectors", from: "12", to: "13", commit: "13", wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
