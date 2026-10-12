@@ -19,8 +19,8 @@
   </a>
 </p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@alibaba-group/open-code-review"><img alt="npm" src="https://img.shields.io/npm/v/@alibaba-group/open-code-review?style=flat-square" /></a>
-  <a href="https://github.com/alibaba/open-code-review/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alibaba/open-code-review/release.yml?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@smallfishworld/open-code-review-svn"><img alt="npm" src="https://img.shields.io/npm/v/@smallfishworld/open-code-review-svn?style=flat-square" /></a>
+  <a href="https://github.com/smallfishworld/open-code-review-svn/actions/workflows/svn-self-test.yml"><img alt="SVN CI" src="https://img.shields.io/github/actions/workflow/status/smallfishworld/open-code-review-svn/svn-self-test.yml?branch=main&amp;style=flat-square" /></a>
   <a href="https://github.com/alibaba/open-code-review/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/alibaba/open-code-review?style=flat-square" /></a>
   <a href="https://deepwiki.com/alibaba/open-code-review"><img alt="Ask DeepWiki" src="https://img.shields.io/badge/Ask-DeepWiki-blue?style=flat-square" /></a>
   <a href="https://www.bestpractices.dev/projects/13328"><img alt="OpenSSF Best Practices" src="https://img.shields.io/badge/OpenSSF-Gold-D4AF37?style=flat-square" /></a>
@@ -40,11 +40,17 @@
 
 ---
 
+## 关于 SVN 增强版
+
+本仓库 [smallfishworld/open-code-review-svn](https://github.com/smallfishworld/open-code-review-svn) 基于阿里巴巴官方 [OpenCodeReview](https://github.com/alibaba/open-code-review) 维护，在保留上游 Git 代码审查能力的同时，新增 **SVN 工作副本审查、指定版本号审查以及版本区间审查**。
+
+**当前版本：** [v1.12.13-svn.1](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1) · [npm 软件包](https://www.npmjs.com/package/@smallfishworld/open-code-review-svn) · [SVN CLI 参数参考](../../pages/src/content/docs/zh/cli-reference.md)
+
 ## Open Code Review 是什么？
 
 Open Code Review 是一款 AI 驱动的代码审查 CLI 工具。它的前身是阿里集团内部官方 AI 代码审查助手，过去两年在内部服务了数万开发者，识别了数百万个代码缺陷。经过大规模充分验证后，我们将其孵化为开源项目，对社区开放。只需配置一个模型端点即可使用。
 
-它读取 Git diff，通过具备工具调用能力的 Agent 将变更文件发送至可配置的 LLM，生成具有行级精度的结构化审查意见。Agent 可以读取完整文件内容、搜索代码库、检查其他变更文件以获取上下文，从而进行深度审查——而非仅停留在表面的 diff 反馈。除了 diff 审查，`ocr scan` 可以审查整个文件，适用于审计不熟悉的代码库或没有有意义 diff 的目录。
+它读取 Git 或 SVN diff，通过具备工具调用能力的 Agent 将变更文件发送至可配置的 LLM，生成具有行级精度的结构化审查意见。Agent 可以读取完整文件内容、搜索代码库、检查其他变更文件以获取上下文，从而进行深度审查——而非仅停留在表面的 diff 反馈。除了 diff 审查，`ocr scan` 可以审查整个文件，适用于审计不熟悉的代码库或没有有意义 diff 的目录。
 
 访问[官方网站](https://open-codereview.ai)了解更多信息。
 
@@ -104,19 +110,24 @@ Open Code Review 的核心设计理念是将确定性工程与 Agent 结合，�
 
 ### 前置条件
 
-- **Git >= 2.41** — Open Code Review 依赖 Git 进行 diff 生成、代码搜索和仓库操作。
+- **Git >= 2.41** — Git 工作区、单次提交和版本区间审查需要 Git。
+- **SVN >= 1.9** — SVN 工作副本及历史版本审查需要 Subversion；获取 SVN diff 不依赖 Git。
 
 ### CLI
 
 #### 安装
 
 ```bash
-npm install -g @alibaba-group/open-code-review
+# 安装经过测试的 SVN 增强版本
+npm install -g @smallfishworld/open-code-review-svn@1.12.13-svn.1
+
+# 或跟随 svn 发布标签更新
+npm install -g @smallfishworld/open-code-review-svn@svn
 ```
 
 安装后，`ocr` 命令即可全局使用。
 
-其他安装方式（安装脚本、GitHub Release 二进制、源码构建），详见[安装指南](https://open-codereview.ai/docs/installation)。
+如果需要离线安装，请到 [本 fork 的 GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1) 下载对应平台的 Windows、macOS 或 Linux 可执行文件及 `sha256sum.txt` 校验文件。官方[安装指南](https://open-codereview.ai/docs/installation)介绍的是上游软件，**上游 npm 包不包含本 fork 的 SVN 功能**。
 
 #### 快速开始
 
@@ -140,13 +151,25 @@ ocr config model             # 为当前供应商选择模型
 ```bash
 cd your-project
 
-# 工作区模式 —— 审查所有暂存、未暂存和未跟踪的变更
+# Git 工作区：审查暂存、未暂存及未跟踪变更
 ocr review
 
-# 分支范围 —— 评审 feature-branch 与 main 分叉后的变更（合并基准模式）
+# SVN 工作副本：审查尚未提交的受版本控制的变更
+ocr review --repo /path/to/svn-working-copy
+
+# SVN 单个版本：审查 r1234 相对 r1233 的变更
+ocr review --repo /path/to/svn-working-copy --commit 1234
+
+# SVN 版本区间：比较 r1200 与 r1234 两个快照
+ocr review --repo /path/to/svn-working-copy --from 1200 --to 1234
+
+# SVN 预览：列出待审查文件，不调用 AI 模型
+ocr review --repo /path/to/svn-working-copy --commit 1234 --preview
+
+# Git 分支范围：按 merge-base 进行对比
 ocr review --from main --to feature-branch
 
-# 单个提交
+# Git 单次提交
 ocr review --commit abc123
 
 # 恢复中断的区间或单 commit 评审
@@ -166,6 +189,46 @@ ocr review --format json --output result.json
 ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
+
+### SVN 审查：工作副本、指定版本号和版本区间
+
+本 fork 会自动识别 SVN 工作副本并解析工作副本根目录，支持从工程根目录或子目录执行。同一个 `ocr review` 命令支持以下三种模式：
+
+| 审查模式 | 命令示例 | 审查范围 |
+|----------|----------|----------|
+| 工作副本未提交修改 | `ocr review` | 使用 `svn status --xml` 与 `svn diff` 获取已纳入版本控制的本地修改 |
+| 指定 SVN 版本 | `ocr review --commit 1234` | 审查 **r1234** 引入的修改，即与 r1233 比较 |
+| SVN 版本区间 | `ocr review --from 1200 --to 1234` | 比较 **r1200** 和 **r1234** 两个仓库快照之间的累计修改 |
+
+```bash
+cd /path/to/svn-working-copy
+
+# 提交前查看本地变更
+svn status
+ocr review --preview                  # 不调用 AI，仅预览待审查文件
+ocr review
+
+# 审查 SVN r1234
+ocr review --commit 1234 --preview
+ocr review --commit 1234
+
+# 审查 SVN r1200 到 r1234
+ocr review --from 1200 --to 1234 --preview --format json
+ocr review --from 1200 --to 1234
+
+# 也可以显式指定 SVN 工作副本路径
+ocr review --repo /path/to/svn-working-copy --commit 1234
+```
+
+**使用说明与限制**
+
+- SVN 版本号只能填写**正整数**，例如 `1234`，**不要添加 `r` 前缀**。区间审查需同时提供 `--from`、`--to`，且起始版本号必须小于结束版本号；`--commit` 不可与区间参数混用。
+- 历史审查通过 `svn diff` 获取历史修改，使用 `svn cat` 读取目标历史版本的文件内容，**不会把当前工作区尚未提交的文件内容当成历史版本内容**。
+- 工作副本模式支持已修改、计划新增、计划删除的文件；未受版本控制的 `?` 文件需要先执行 `svn add <path>`。已针对空格路径、中文文件名进行回归测试。二进制变更可识别，但不会当作源代码文本审查。
+- `--preview` 只运行文件筛选，不调用大模型；建议先预览审查范围，再执行正式审查。
+- **SVN 历史审查暂不支持 Git 风格的 `--resume` 工作流**。Git 模式的 `--commit`、`--from` 和 `--to` 仍使用原来的 Git 语义。
+
+详见 [本 fork 的中文 CLI 参考](../../pages/src/content/docs/zh/cli-reference.md)和 [v1.12.13-svn.1 离线安装包](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1)。
 
 ## 文档
 
