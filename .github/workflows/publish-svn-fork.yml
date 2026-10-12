@@ -7,7 +7,7 @@ on:
       - release/npm-svn
 
 env:
-  RELEASE_VERSION: 1.12.7-svn.1
+  RELEASE_VERSION: 1.12.13-svn.1
 
 permissions:
   contents: read
