@@ -175,12 +175,25 @@ func resolveWorkingDir(input string, requireGit bool) (string, bool, error) {
 	out, err := runGitCmd(absPath, "rev-parse", "--git-dir")
 	isGit := err == nil && len(out) > 0
 	if !isGit && requireGit {
-		cmd := exec.Command("svn", "info", "--show-item", "wc-root", absPath)
-		root, svnErr := cmd.Output()
-		if svnErr != nil || strings.TrimSpace(string(root)) == "" {
-			return "", false, fmt.Errorf("%s is not a git repository or SVN working copy", absPath)
+		// SVN may reject "svn info" for an unversioned directory inside a
+		// working copy. Walk upward to find the closest versioned ancestor.
+		original := absPath
+		found := false
+		for candidate := absPath; ; candidate = filepath.Dir(candidate) {
+			cmd := exec.Command("svn", "info", "--show-item", "wc-root", candidate)
+			root, svnErr := cmd.Output()
+			if svnErr == nil && strings.TrimSpace(string(root)) != "" {
+				absPath = strings.TrimSpace(string(root))
+				found = true
+				break
+			}
+			if parent := filepath.Dir(candidate); parent == candidate {
+				break
+			}
 		}
-		absPath = strings.TrimSpace(string(root))
+		if !found {
+			return "", false, fmt.Errorf("%s is not a git repository or SVN working copy", original)
+		}
 	}
 	// #287: git reports diff and `git show HEAD:<path>` paths relative to the
 	// repository root, not the current directory. When `ocr review` runs from a
