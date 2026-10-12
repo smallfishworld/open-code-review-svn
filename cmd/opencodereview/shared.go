@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -169,12 +168,7 @@ func resolveWorkingDir(input string, requireGit bool) (string, bool, error) {
 	out, err := runGitCmd(absPath, "rev-parse", "--git-dir")
 	isGit := err == nil && len(out) > 0
 	if !isGit && requireGit {
-		cmd := exec.Command("svn", "info", "--show-item", "wc-root", absPath)
-		root, svnErr := cmd.Output()
-		if svnErr != nil || strings.TrimSpace(string(root)) == "" {
-			return "", false, fmt.Errorf("%s is not a git repository or SVN working copy", absPath)
-		}
-		absPath = strings.TrimSpace(string(root))
+		return "", false, fmt.Errorf("%s is not a git repository", absPath)
 	}
 	// #287: git reports diff and `git show HEAD:<path>` paths relative to the
 	// repository root, not the current directory. When `ocr review` runs from a
@@ -198,13 +192,6 @@ func resolveWorkingDir(input string, requireGit bool) (string, bool, error) {
 	return absPath, isGit, nil
 }
 
-func validateRepositoryReviewMode(isGit bool, from, to, commit string) error {
-	if isGit || (from == "" && to == "" && commit == "") {
-		return nil
-	}
-	return fmt.Errorf("SVN working copies support workspace mode only; omit --from, --to, and --commit")
-}
-
 // llmRuntime bundles the LLM-side state both subcommands need once they've
 // decided to actually run a session: tool definitions, an app-language
 // adjusted template (mutated in place via ApplyLanguage), the LLM client,
@@ -213,6 +200,7 @@ type llmRuntime struct {
 	Client       llm.LLMClient
 	Model        string
 	Provider     string // resolved provider name (non-secret label; empty for non-provider endpoints)
+	Source       string // resolved configuration source (non-secret label)
 	PlanToolDefs []llm.ToolDef
 	MainToolDefs []llm.ToolDef
 	Collector    *tool.CommentCollector
@@ -287,6 +275,7 @@ func loadLLMRuntime(tpl *template.Template, toolConfigPath string, resolveOpts l
 		Client:         llm.NewLLMClient(ep, retryCollector, rawHolder),
 		Model:          ep.Model,
 		Provider:       ep.Provider,
+		Source:         ep.Source,
 		PlanToolDefs:   planToolDefs,
 		MainToolDefs:   mainToolDefs,
 		Collector:      tool.NewCommentCollector(),

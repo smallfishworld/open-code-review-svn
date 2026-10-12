@@ -64,9 +64,6 @@ var reviewCmd = &cobra.Command{
 	Example: `  # Review staged + unstaged + untracked changes in current workspace
   ocr review
 
-  # Review uncommitted changes in an SVN working copy
-  ocr review --repo /path/to/svn-working-copy
-
   # Review a branch against its base (merge-base mode)
   ocr review --from master --to dev-ref
 
@@ -142,9 +139,6 @@ func executeReviewContext(ctx context.Context, opts reviewOptions) (retErr error
 		return err
 	}
 	applyCLIExcludes(cc, splitPaths(opts.excludes))
-	if err := validateRepositoryReviewMode(cc.IsGitRepo, opts.from, opts.to, opts.commit); err != nil {
-		return err
-	}
 
 	// Security (#112): reject ref-option injection before any git invocation.
 	if err := validateReviewRefs(cc.RepoDir, opts); err != nil {
@@ -238,6 +232,7 @@ func executeReviewContext(ctx context.Context, opts reviewOptions) (retErr error
 		ConcurrentTaskTimeout: opts.concurrentTaskTimeout,
 		Model:                 rt.Model,
 		Provider:              rt.Provider,
+		EndpointSource:        rt.Source,
 		Background:            opts.background,
 		GitRunner:             cc.GitRunner,
 		Resume:                resumeState,

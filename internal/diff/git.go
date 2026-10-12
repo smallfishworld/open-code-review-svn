@@ -49,12 +49,11 @@ const (
 	ModeRange                 // merge-base(from,to)..to
 )
 
-// Provider retrieves and parses diffs from a Git repository or SVN working copy.
+// Provider retrieves and parse git diffs from a repository.
 type Provider struct {
 	repoDir string
 	mode    Mode
 	runner  *gitcmd.Runner
-	svn     bool
 
 	// Range mode parameters
 	from, to string // from/to refs for range comparison
@@ -124,7 +123,6 @@ func NewWorkspaceProvider(repoDir string, runner *gitcmd.Runner) *Provider {
 		repoDir: repoDir,
 		mode:    ModeWorkspace,
 		runner:  runner,
-		svn:     isSVNWorkingCopy(repoDir),
 	}
 }
 
@@ -158,9 +156,6 @@ type InputResolution struct {
 // It runs read-only git queries and never returns an error: an unresolvable
 // endpoint is reported as an empty field, never a fabricated SHA.
 func (p *Provider) ResolveInput(ctx context.Context) InputResolution {
-	if p.svn {
-		return InputResolution{}
-	}
 	switch p.mode {
 	case ModeRange:
 		base := p.MergeBase(ctx)
@@ -247,9 +242,6 @@ func (p *Provider) GetDiffSet(ctx context.Context) (DiffSet, error) {
 		combined.WriteString(out)
 
 	case ModeWorkspace:
-		if p.svn {
-			return p.getSVNWorkspaceDiffSet(ctx)
-		}
 		// The stderr returned here is the fallback's (`git diff --staged`), and
 		// that is the one worth surfacing. Reaching the fallback at all means
 		// `git diff HEAD` already failed, and in the case the fallback exists
@@ -480,9 +472,6 @@ func (p *Provider) computeMergeBase(ctx context.Context, from, to string) string
 // it was cloned. It returns "" when there is no origin remote, or when origin is
 // a local-filesystem remote (the caller then omits repository identity).
 func (p *Provider) RemoteIdentity(ctx context.Context) string {
-	if p.svn {
-		return p.svnRemoteIdentity(ctx)
-	}
 	out, err := p.runGit(ctx, "remote", "get-url", "origin")
 	if err != nil {
 		return ""
@@ -714,7 +703,13 @@ func (p *Provider) untrackedFileDiffs(ctx context.Context) ([]string, error) {
 }
 
 func (p *Provider) untrackedFilesList(ctx context.Context) ([]string, error) {
-	out, stderr, err := p.runGitSplit(ctx, "-c", "core.quotepath=false", "ls-files", "--others", "--exclude-standard")
+	// -z, and no trimming of the records it produces. Without it git quotes
+	// any pathname holding a tab, a newline, a quote or a backslash, so the
+	// name arrives escaped and matches nothing on disk; a newline in a name
+	// also splits one file into two entries. Trimming then removes leading and
+	// trailing spaces, which are filename bytes. Each of those drops an
+	// untracked file out of the review with no error.
+	out, stderr, err := p.runGitSplit(ctx, "-c", "core.quotepath=false", "ls-files", "-z", "--others", "--exclude-standard")
 	if err != nil {
 		return nil, gitFailure("git ls-files", stderr, err)
 	}
@@ -723,13 +718,12 @@ func (p *Provider) untrackedFilesList(ctx context.Context) ([]string, error) {
 	}
 	patterns := p.loadGitignorePatterns()
 	var files []string
-	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
+	for _, name := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
+		if name == "" {
 			continue
 		}
-		if !p.isPathExcluded(line, patterns) {
-			files = append(files, line)
+		if !p.isPathExcluded(name, patterns) {
+			files = append(files, name)
 		}
 	}
 	return files, nil
