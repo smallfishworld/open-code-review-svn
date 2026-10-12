@@ -34,6 +34,31 @@ jobs:
         run: go test -count=1 -v ./internal/diff -run 'Test(SVN|ConvertSVN)'
       - name: Run review validation tests
         run: go test -count=1 -v ./cmd/opencodereview -run 'Test(ValidateRepositoryReviewMode|ResolveWorkingDirSVNSubdirectory)'
+      - name: Test real CLI revision and preview in SVN checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          svnadmin create "$tmp/repo"
+          svn checkout "file://$tmp/repo" "$tmp/wc"
+          echo 'int value=1;' > "$tmp/wc/main.c"
+          svn add "$tmp/wc/main.c"
+          svn commit "$tmp/wc" -m initial
+          echo 'int value=2;' > "$tmp/wc/main.c"
+          svn commit "$tmp/wc" -m second
+          echo 'UNCOMMITTED' > "$tmp/wc/main.c"
+          timeout 40s ./opencodereview review --repo "$tmp/wc" --commit 2 --preview --format json > "$tmp/commit.json"
+          timeout 40s ./opencodereview review --repo "$tmp/wc" --from 1 --to 2 --preview --format json > "$tmp/range.json"
+          timeout 40s ./opencodereview review --repo "$tmp/wc" --preview --format json > "$tmp/workspace.json"
+          grep -q main.c "$tmp/commit.json"
+          grep -q main.c "$tmp/range.json"
+          grep -q main.c "$tmp/workspace.json"
+          echo "CLI preview: SVN commit, range and working-copy all completed"
+      - name: Cross-build Windows and macOS
+        shell: bash
+        run: |
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /tmp/ocr-win.exe ./cmd/opencodereview
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o /tmp/ocr-mac ./cmd/opencodereview
       - name: Run file reading tests
         run: go test -count=1 ./internal/tool
       - name: Run all Go tests
