@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -125,6 +126,11 @@ func loadCommonContext(repoDirInput, rulePath, contentRef string, maxTools, maxG
 	if err != nil {
 		return nil, err
 	}
+	// Numeric SVN revisions are not Git refs. Do not git-show them when
+	// looking up extension-specific review rules.
+	if !isGit {
+		contentRef = ""
+	}
 
 	// Built before the resolver: the sniffer reads file content at contentRef
 	// through this limiter.
@@ -169,12 +175,25 @@ func resolveWorkingDir(input string, requireGit bool) (string, bool, error) {
 	out, err := runGitCmd(absPath, "rev-parse", "--git-dir")
 	isGit := err == nil && len(out) > 0
 	if !isGit && requireGit {
-		cmd := exec.Command("svn", "info", "--show-item", "wc-root", absPath)
-		root, svnErr := cmd.Output()
-		if svnErr != nil || strings.TrimSpace(string(root)) == "" {
-			return "", false, fmt.Errorf("%s is not a git repository or SVN working copy", absPath)
+		// SVN may reject "svn info" for an unversioned directory inside a
+		// working copy. Walk upward to find the closest versioned ancestor.
+		original := absPath
+		found := false
+		for candidate := absPath; ; candidate = filepath.Dir(candidate) {
+			cmd := exec.Command("svn", "info", "--show-item", "wc-root", candidate)
+			root, svnErr := cmd.Output()
+			if svnErr == nil && strings.TrimSpace(string(root)) != "" {
+				absPath = strings.TrimSpace(string(root))
+				found = true
+				break
+			}
+			if parent := filepath.Dir(candidate); parent == candidate {
+				break
+			}
 		}
-		absPath = strings.TrimSpace(string(root))
+		if !found {
+			return "", false, fmt.Errorf("%s is not a git repository or SVN working copy", original)
+		}
 	}
 	// #287: git reports diff and `git show HEAD:<path>` paths relative to the
 	// repository root, not the current directory. When `ocr review` runs from a
@@ -198,11 +217,53 @@ func resolveWorkingDir(input string, requireGit bool) (string, bool, error) {
 	return absPath, isGit, nil
 }
 
+// validateRepositoryReviewMode retains Git ref semantics while allowing
+// numeric Subversion revisions in review --commit/--from/--to.
 func validateRepositoryReviewMode(isGit bool, from, to, commit string) error {
 	if isGit || (from == "" && to == "" && commit == "") {
 		return nil
 	}
-	return fmt.Errorf("SVN working copies support workspace mode only; omit --from, --to, and --commit")
+	if commit != "" {
+		if from != "" || to != "" {
+			return fmt.Errorf("SVN --commit cannot be combined with --from or --to")
+		}
+		_, err := parseSVNRevision(commit)
+		return err
+	}
+	if from == "" || to == "" {
+		return fmt.Errorf("SVN revision range requires both --from and --to")
+	}
+	start, err := parseSVNRevision(from)
+	if err != nil {
+		return err
+	}
+	end, err := parseSVNRevision(to)
+	if err != nil {
+		return err
+	}
+	if start >= end {
+		return fmt.Errorf("SVN revision range requires --from < --to")
+	}
+	return nil
+}
+
+func parseSVNRevision(raw string) (uint64, error) {
+	if raw == "" {
+		return 0, fmt.Errorf("SVN revision cannot be empty")
+	}
+	for _, ch := range raw {
+		if ch < '0' || ch > '9' {
+			return 0, fmt.Errorf("SVN revision %q must be a positive decimal number", raw)
+		}
+	}
+	rev, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid SVN revision %q: %w", raw, err)
+	}
+	if rev == 0 {
+		return 0, fmt.Errorf("SVN revision must be greater than zero")
+	}
+	return rev, nil
 }
 
 // llmRuntime bundles the LLM-side state both subcommands need once they've
@@ -213,6 +274,7 @@ type llmRuntime struct {
 	Client       llm.LLMClient
 	Model        string
 	Provider     string // resolved provider name (non-secret label; empty for non-provider endpoints)
+	Source       string // resolved configuration source (non-secret label)
 	PlanToolDefs []llm.ToolDef
 	MainToolDefs []llm.ToolDef
 	Collector    *tool.CommentCollector
@@ -287,6 +349,7 @@ func loadLLMRuntime(tpl *template.Template, toolConfigPath string, resolveOpts l
 		Client:         llm.NewLLMClient(ep, retryCollector, rawHolder),
 		Model:          ep.Model,
 		Provider:       ep.Provider,
+		Source:         ep.Source,
 		PlanToolDefs:   planToolDefs,
 		MainToolDefs:   mainToolDefs,
 		Collector:      tool.NewCommentCollector(),
