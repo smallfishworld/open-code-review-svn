@@ -1,0 +1,47 @@
+name: SVN Search Regression
+on:
+  push:
+    branches:
+      - fix/svn-native-code-search-and-file-find-20261013
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install SVN
+        run: |
+          command -v svn || (sudo apt-get update && sudo apt-get install -y subversion)
+          svn --version --quiet
+      - name: Format SVN search changes
+        run: |
+          gofmt -s -w internal/tool/svn_files.go internal/tool/svn_search_test.go internal/tool/code_search.go internal/tool/file_find.go
+      - name: Go build
+        run: go build ./cmd/opencodereview
+      - name: SVN search integration tests
+        run: go test -count=1 -v ./internal/tool -run 'TestSVN'
+      - name: All tool tests
+        run: go test -count=1 ./internal/tool
+      - name: Full Go suite
+        run: go test -count=1 ./...
+      - name: Save formatting to branch
+        if: github.event_name == 'push'
+        env:
+          BRANCH: fix/svn-native-code-search-and-file-find-20261013
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add internal/tool/svn_files.go internal/tool/svn_search_test.go internal/tool/code_search.go internal/tool/file_find.go
+          if ! git diff --cached --quiet; then
+            git commit -m 'style(svn): format native search implementation'
+            git push origin "HEAD:${BRANCH}"
+          fi
