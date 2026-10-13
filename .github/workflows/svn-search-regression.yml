@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - fix/svn-native-code-search-and-file-find-20261013
+      - main
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -24,7 +25,7 @@ jobs:
           svn --version --quiet
       - name: Format SVN search changes
         run: |
-          gofmt -s -w internal/tool/svn_files.go internal/tool/svn_search_test.go internal/tool/code_search.go internal/tool/file_find.go
+          gofmt -s -w internal/tool/svn_files.go internal/tool/svn_search_test.go internal/tool/code_search.go internal/tool/file_find.go cmd/opencodereview/scan_cmd.go
       - name: Go build
         run: go build ./cmd/opencodereview
       - name: SVN search integration tests
@@ -40,8 +41,9 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add internal/tool/svn_files.go internal/tool/svn_search_test.go internal/tool/code_search.go internal/tool/file_find.go
+          git add internal/tool/svn_files.go internal/tool/svn_search_test.go internal/tool/code_search.go internal/tool/file_find.go cmd/opencodereview/scan_cmd.go
           if ! git diff --cached --quiet; then
             git commit -m 'style(svn): format native search implementation'
+            git pull --rebase origin "${BRANCH}"
             git push origin "HEAD:${BRANCH}"
           fi
