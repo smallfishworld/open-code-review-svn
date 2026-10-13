@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,8 @@ const (
 // CodeSearchProvider uses git grep for Git and native SVN file enumeration for Subversion.
 type CodeSearchProvider struct {
 	FileReader *FileReader
+	cacheMu    sync.Mutex
+	cache      map[string]string
 }
 
 func NewCodeSearch(fr *FileReader) *CodeSearchProvider { return &CodeSearchProvider{FileReader: fr} }
@@ -49,6 +52,18 @@ func (p *CodeSearchProvider) Execute(ctx context.Context, args map[string]any) (
 	if strings.TrimSpace(searchText) == "" {
 		return "Error: search_text is blank", nil
 	}
+	// Per-review memoization: only successful results are saved. The cache is
+	// bounded and keyed by every search parameter affecting the result.
+	key := fmt.Sprintf("%q|%t|%t|%q", searchText, caseSensitive, usePerlRegexp, patterns)
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	p.cacheMu.Lock()
+	cached, ok := p.cache[key]
+	p.cacheMu.Unlock()
+	if ok {
+		return cached, nil
+	}
 
 	var result string
 	var err error
@@ -59,6 +74,16 @@ func (p *CodeSearchProvider) Execute(ctx context.Context, args map[string]any) (
 	}
 	if err != nil {
 		return "", err
+	}
+	if len(result) <= 128<<10 {
+		p.cacheMu.Lock()
+		if p.cache == nil {
+			p.cache = make(map[string]string)
+		}
+		if len(p.cache) < 128 {
+			p.cache[key] = result
+		}
+		p.cacheMu.Unlock()
 	}
 	return result, nil
 }

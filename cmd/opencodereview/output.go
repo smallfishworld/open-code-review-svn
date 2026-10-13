@@ -281,13 +281,14 @@ type jsonSummary struct {
 
 type jsonToolCalls struct {
 	Total          int64                       `json:"total"`
+	DurationMSByTool map[string]int64         `json:"duration_ms_by_tool,omitempty"`
 	ByTool         map[string]int64            `json:"by_tool"`
 	Failure        int64                       `json:"failure"`
 	FailureByTool  map[string]int64            `json:"failure_by_tool"`
 	FailureDetails []llmloop.ToolFailureDetail `json:"failure_details"`
 }
 
-func newJSONToolCalls(toolCalls map[string]int64, failures []llmloop.ToolFailureDetail) *jsonToolCalls {
+func newJSONToolCalls(toolCalls map[string]int64, failures []llmloop.ToolFailureDetail, durations ...map[string]int64) *jsonToolCalls {
 	var total int64
 	for _, count := range toolCalls {
 		total += count
@@ -302,13 +303,17 @@ func newJSONToolCalls(toolCalls map[string]int64, failures []llmloop.ToolFailure
 	if failures == nil {
 		failures = make([]llmloop.ToolFailureDetail, 0)
 	}
-	return &jsonToolCalls{
+	out := &jsonToolCalls{
 		Total:          total,
 		ByTool:         toolCalls,
 		Failure:        int64(len(failures)),
 		FailureByTool:  failureByTool,
 		FailureDetails: failures,
 	}
+	if len(durations) > 0 {
+		out.DurationMSByTool = durations[0]
+	}
+	return out
 }
 
 type jsonLLMIdentity struct {
@@ -356,7 +361,7 @@ func outputJSONWithWarnings(comments []model.LlmComment, warnings []agent.AgentW
 	duration time.Duration, projectSummary string, toolCalls map[string]int64, toolFailures []llmloop.ToolFailureDetail,
 	traceID string, resumeInfo *agent.ResumeInfo, sessionID string,
 	manifest *session.RunManifest, budgetExceeded bool, llmIdentity *jsonLLMIdentity, out io.Writer,
-	retryReport *llm.RetryReport, groups []agent.FileGroupInfo) error {
+	retryReport *llm.RetryReport, groups []agent.FileGroupInfo, toolDurations ...map[string]int64) error {
 	publishedWarnings := warningsForOutput(warnings, manifest)
 	payload := jsonOutput{
 		Status:   "success",
@@ -381,7 +386,7 @@ func outputJSONWithWarnings(comments []model.LlmComment, warnings []agent.AgentW
 		Manifest:       manifest,
 		RetryReport:    retryReport,
 	}
-	payload.ToolCalls = newJSONToolCalls(toolCalls, toolFailures)
+	payload.ToolCalls = newJSONToolCalls(toolCalls, toolFailures, toolDurations...)
 	if manifest != nil {
 		payload.Status = string(manifest.TerminalState)
 		payload.Message = manifestMessage(manifest, len(comments))

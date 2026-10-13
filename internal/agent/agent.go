@@ -529,6 +529,9 @@ func (a *Agent) Warnings() []AgentWarning { return a.runner.Warnings() }
 // ToolCalls returns per-tool call counts accumulated during review.
 func (a *Agent) ToolCalls() map[string]int64 { return a.runner.ToolCalls() }
 
+// ToolDurations returns per-tool cumulative execution time in milliseconds.
+func (a *Agent) ToolDurations() map[string]int64 { return a.runner.ToolDurations() }
+
 // ToolFailures returns failed registered-tool calls accumulated during review.
 func (a *Agent) ToolFailures() []llmloop.ToolFailureDetail { return a.runner.ToolFailures() }
 

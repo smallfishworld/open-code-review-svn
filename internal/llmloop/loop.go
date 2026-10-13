@@ -109,6 +109,7 @@ type Runner struct {
 	warnings              []AgentWarning
 	toolCallsMu           sync.Mutex
 	toolCalls             map[string]int64
+	toolDurationNS        map[string]int64
 	toolCallSequence      int64
 	toolFailures          []ToolFailureDetail
 	// toolFailureStreak counts each (taskKey, toolName) pair's consecutive
@@ -207,6 +208,27 @@ func (r *Runner) ToolCalls() map[string]int64 {
 		out[k] = v
 	}
 	return out
+}
+
+// ToolDurations returns cumulative synchronous tool execution/dispatch time
+// in milliseconds. Async code_comment follow-up work is not included.
+func (r *Runner) ToolDurations() map[string]int64 {
+	r.toolCallsMu.Lock()
+	defer r.toolCallsMu.Unlock()
+	out := make(map[string]int64, len(r.toolDurationNS))
+	for name, ns := range r.toolDurationNS {
+		out[name] = ns / int64(time.Millisecond)
+	}
+	return out
+}
+
+func (r *Runner) recordToolDuration(name string, duration time.Duration) {
+	r.toolCallsMu.Lock()
+	defer r.toolCallsMu.Unlock()
+	if r.toolDurationNS == nil {
+		r.toolDurationNS = make(map[string]int64)
+	}
+	r.toolDurationNS[name] += duration.Nanoseconds()
 }
 
 // ToolFailures returns failed tool calls ordered by their global call number.
@@ -660,6 +682,7 @@ func (r *Runner) executeToolCall(ctx context.Context, taskKey string, call llm.T
 
 	toolCallNumber := r.recordToolCall(toolName)
 	callStarted := time.Now()
+	defer func() { r.recordToolDuration(toolName, time.Since(callStarted)) }()
 
 	args, err := parseToolArgs(call.Function.Arguments)
 	if err != nil {

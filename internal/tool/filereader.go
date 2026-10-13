@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alibaba/open-code-review/internal/diff"
@@ -65,13 +66,51 @@ type FileReader struct {
 	Ref    string
 	Runner *gitcmd.Runner
 	SVN    bool // SVN history uses svn cat rather than git show
+	// The caches are scoped to this reader (one review run), never shared globally.
+	cacheMu      sync.Mutex
+	fileCache    map[string]string
+	cacheBytes   int
+	svnFilesMu   sync.Mutex
+	svnFileNames []string
+	svnFilesReady bool
 }
 
 // Read returns the full content of a file path (relative to RepoDir),
 // resolved according to the active review mode.
 // - Workspace: reads directly from the filesystem.
 // - Range / Commit: uses `git show <Ref>:<path>` to read at the given ref.
+// Read caches successful SVN reads for the duration of one review, with a
+// bounded memory budget. Workspace reviews analyze one admitted diff snapshot;
+// callers must create a fresh FileReader for a new review after editing files.
 func (fr *FileReader) Read(ctx context.Context, path string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	if fr.SVN {
+		fr.cacheMu.Lock()
+		content, ok := fr.fileCache[path]
+		fr.cacheMu.Unlock()
+		if ok {
+			return content, nil
+		}
+	}
+	content, err := fr.readUncached(ctx, path)
+	if err != nil || !fr.SVN || len(content) > 8<<20 {
+		return content, err
+	}
+	fr.cacheMu.Lock()
+	if fr.fileCache == nil {
+		fr.fileCache = make(map[string]string)
+	}
+	if _, exists := fr.fileCache[path]; !exists && fr.cacheBytes+len(content) <= 64<<20 {
+		fr.fileCache[path] = content
+		fr.cacheBytes += len(content)
+	}
+	fr.cacheMu.Unlock()
+	return content, nil
+}
+
+func (fr *FileReader) readUncached(ctx context.Context, path string) (string, error) {
 	if fr.SVN && fr.Mode != ModeWorkspace {
 		return diff.ReadSVNRevisionFile(ctx, fr.RepoDir, path, fr.Ref)
 	}
@@ -146,7 +185,7 @@ func (fr *FileReader) readFromGitShow(parentCtx context.Context, path string) (s
 // ReadLines returns a window of lines from the file plus the total line count.
 // startLine is 1-based; maxLines is the maximum number of lines to collect.
 func (fr *FileReader) ReadLines(ctx context.Context, path string, startLine, maxLines int) ([]string, int, error) {
-	if fr.SVN && fr.Mode != ModeWorkspace {
+	if fr.SVN {
 		content, err := fr.Read(ctx, path)
 		if err != nil {
 			return nil, 0, err
