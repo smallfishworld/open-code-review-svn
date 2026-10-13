@@ -129,6 +129,19 @@ After installation, the `ocr` command is available globally.
 
 For offline installation, download the matching Windows, macOS, or Linux binary (and `sha256sum.txt`) from the [fork's GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1). General upstream installation documentation is available at [Installation](https://open-codereview.ai/docs/installation); its upstream npm package is **not** this SVN-enabled fork.
 
+**Linux x86_64 fully offline archive:** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz) ([SHA-256](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz.sha256)). Download on an internet-connected computer, transfer both files to your offline Linux machine, then run:
+
+```bash
+sha256sum -c linux-x86-64-offline.tar.gz.sha256
+tar -xzf linux-x86-64-offline.tar.gz
+cd linux-x86-64-offline
+sha256sum -c SHA256SUMS
+./ocr --version                 # run directly, no installation required
+./install.sh                   # optional: install to ~/.local/bin
+```
+
+The archive is self-contained for installation (no Go, Node.js, npm, or download required). SVN review requires Subversion installed and AI-powered review needs a reachable model endpoint (including an intranet endpoint).
+
 #### Quick Start
 
 **1. Configure LLM**
