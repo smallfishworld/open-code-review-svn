@@ -68,14 +68,27 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           pattern: binary-*
           path: dist
           merge-multiple: true
 
+      - name: Bundle offline Linux x86_64 distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/package-linux-offline.sh dist/opencodereview-linux-amd64 dist "${RELEASE_VERSION}"
+          test -s dist/linux-x86-64-offline.tar.gz
+          stage="$(mktemp -d)"
+          tar -xzf dist/linux-x86-64-offline.tar.gz -C "$stage"
+          (cd "$stage/linux-x86-64-offline" && sha256sum -c SHA256SUMS && ./ocr --version)
+          rm -rf "$stage"
+
       - name: Generate checksums
-        run: cd dist && sha256sum opencodereview-* | sort > sha256sum.txt
+        run: cd dist && sha256sum opencodereview-* linux-x86-64-offline.tar.gz | sort > sha256sum.txt
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
