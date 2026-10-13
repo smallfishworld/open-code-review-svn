@@ -30,7 +30,7 @@ func svnFiles(parent context.Context, fr *FileReader) ([]string, error) {
 		Path string `xml:"path,attr"`
 		Kind string `xml:"kind,attr"`
 		Name string `xml:"name"`
-		WC struct {
+		WC   struct {
 			Item string `xml:"item,attr"`
 		} `xml:"wc-status"`
 	}
@@ -69,7 +69,9 @@ func svnFiles(parent context.Context, fr *FileReader) ([]string, error) {
 		name = filepath.ToSlash(name)
 		if filepath.IsAbs(name) {
 			rel, err := filepath.Rel(fr.RepoDir, filepath.FromSlash(name))
-			if err != nil { return }
+			if err != nil {
+				return
+			}
 			name = filepath.ToSlash(rel)
 		}
 		name = strings.TrimPrefix(name, "./")
@@ -90,7 +92,9 @@ func svnFiles(parent context.Context, fr *FileReader) ([]string, error) {
 			switch e.WC.Item {
 			case "normal", "modified", "added", "replaced", "conflicted", "merged":
 				path := e.Path
-				if !filepath.IsAbs(path) { path = filepath.Join(fr.RepoDir, path) }
+				if !filepath.IsAbs(path) {
+					path = filepath.Join(fr.RepoDir, path)
+				}
 				if info, err := os.Stat(path); err == nil && info.Mode().IsRegular() {
 					add(e.Path)
 				}
@@ -114,15 +118,27 @@ func svnFiles(parent context.Context, fr *FileReader) ([]string, error) {
 // matchSVNFilePattern implements the directory and glob filtering typically
 // passed to code_search, without feeding untrusted patterns to shell commands.
 func matchSVNFilePattern(file string, patterns []string) bool {
-	if len(patterns) == 0 { return true }
+	if len(patterns) == 0 {
+		return true
+	}
 	for _, raw := range patterns {
 		p := strings.TrimPrefix(strings.ReplaceAll(raw, "\\", "/"), "./")
-		if p == "" { continue }
-		if strings.HasSuffix(p, "/") && strings.HasPrefix(file, p) { return true }
-		if file == p || strings.HasPrefix(file, strings.TrimSuffix(p, "/")+"/") { return true }
-		if ok, err := doublestar.Match(p, file); err == nil && ok { return true }
+		if p == "" {
+			continue
+		}
+		if strings.HasSuffix(p, "/") && strings.HasPrefix(file, p) {
+			return true
+		}
+		if file == p || strings.HasPrefix(file, strings.TrimSuffix(p, "/")+"/") {
+			return true
+		}
+		if ok, err := doublestar.Match(p, file); err == nil && ok {
+			return true
+		}
 		if !strings.Contains(p, "/") {
-			if ok, err := doublestar.Match(p, filepath.Base(file)); err == nil && ok { return true }
+			if ok, err := doublestar.Match(p, filepath.Base(file)); err == nil && ok {
+				return true
+			}
 		}
 	}
 	return false

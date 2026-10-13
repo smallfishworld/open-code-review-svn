@@ -15,7 +15,9 @@ import (
 func svnSearchFixture(t *testing.T) string {
 	t.Helper()
 	for _, cmd := range []string{"svn", "svnadmin"} {
-		if _, err := exec.LookPath(cmd); err != nil { t.Skipf("%s is unavailable", cmd) }
+		if _, err := exec.LookPath(cmd); err != nil {
+			t.Skipf("%s is unavailable", cmd)
+		}
 	}
 	root := t.TempDir()
 	repository := filepath.Join(root, "repo")
@@ -31,8 +33,12 @@ func svnSearchFixture(t *testing.T) string {
 	write := func(name, value string) {
 		t.Helper()
 		p := filepath.Join(wc, name)
-		if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil { t.Fatal(err) }
-		if err := os.WriteFile(p, []byte(value), 0644); err != nil { t.Fatal(err) }
+		if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(value), 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	run("", "svnadmin", "create", repository)
 	run("", "svn", "checkout", "file://"+filepath.ToSlash(repository), wc)
@@ -65,26 +71,26 @@ func TestSVNNativeSearchWorkspace(t *testing.T) {
 		{"UTF8_NAME_ONLY", "src/中文文件.c"},
 		{"SPACE_NAME_ONLY", "space name.c"},
 	} {
-		got, err := code.Execute(ctx, map[string]any{"search_text":tc.text})
+		got, err := code.Execute(ctx, map[string]any{"search_text": tc.text})
 		if err != nil || !strings.Contains(got, tc.want) {
 			t.Errorf("SVN workspace search %q: %q, %v", tc.text, got, err)
 		}
 	}
-	if got, err := code.Execute(ctx, map[string]any{"search_text":"UNTRACKED_ONLY"}); err != nil || got != "No matches found" {
+	if got, err := code.Execute(ctx, map[string]any{"search_text": "UNTRACKED_ONLY"}); err != nil || got != "No matches found" {
 		t.Errorf("untracked files should not be searched: %q, %v", got, err)
 	}
 	if got, err := code.Execute(ctx, map[string]any{
-		"search_text":"LOCAL_ONLY", "file_patterns":[]any{"src/中文*.c"},
+		"search_text": "LOCAL_ONLY", "file_patterns": []any{"src/中文*.c"},
 	}); err != nil || got != "No matches found" {
 		t.Errorf("file_patterns should narrow SVN search: %q, %v", got, err)
 	}
 	if got, err := code.Execute(ctx, map[string]any{
-		"search_text":"local_only", "file_patterns":[]any{"src/"},
+		"search_text": "local_only", "file_patterns": []any{"src/"},
 	}); err != nil || !strings.Contains(got, "src/hello.c") {
 		t.Errorf("case insensitive path search: %q, %v", got, err)
 	}
 	if got, err := code.Execute(ctx, map[string]any{
-		"search_text":"LOCAL_[A-Z]+", "use_perl_regexp":true,
+		"search_text": "LOCAL_[A-Z]+", "use_perl_regexp": true,
 	}); err != nil || !strings.Contains(got, "src/hello.c") {
 		t.Errorf("regex search: %q, %v", got, err)
 	}
@@ -93,12 +99,12 @@ func TestSVNNativeSearchWorkspace(t *testing.T) {
 		{"中文文件", "src/中文文件.c"},
 		{"added.c", "src/added.c"},
 	} {
-		got, err := find.Execute(ctx, map[string]any{"query_name":tc.query})
+		got, err := find.Execute(ctx, map[string]any{"query_name": tc.query})
 		if err != nil || !strings.Contains(got, tc.want) {
 			t.Errorf("SVN file_find %q: %q, %v", tc.query, got, err)
 		}
 	}
-	if got, err := find.Execute(ctx, map[string]any{"query_name":"untracked.c"}); err != nil || !strings.Contains(got, "not found") {
+	if got, err := find.Execute(ctx, map[string]any{"query_name": "untracked.c"}); err != nil || !strings.Contains(got, "not found") {
 		t.Errorf("untracked file_find: %q, %v", got, err)
 	}
 }
@@ -106,10 +112,10 @@ func TestSVNNativeSearchWorkspace(t *testing.T) {
 func TestSVNNativeSearchHistoricalSnapshot(t *testing.T) {
 	root := svnSearchFixture(t)
 	ctx := context.Background()
-	for _, tc := range []struct{
+	for _, tc := range []struct {
 		revision string
-		needle string
-		found bool
+		needle   string
+		found    bool
 	}{
 		{"1", "OLD_DATA_ONLY", true},
 		{"2", "OLD_DATA_ONLY", false},
@@ -117,28 +123,43 @@ func TestSVNNativeSearchHistoricalSnapshot(t *testing.T) {
 		{"2", "LOCAL_ONLY", false},
 		{"1", "DELETED_AT_R2", true},
 	} {
-		fr := &FileReader{RepoDir:root, SVN:true, Ref:tc.revision, Mode:ModeCommit}
+		fr := &FileReader{RepoDir: root, SVN: true, Ref: tc.revision, Mode: ModeCommit}
 		got, err := NewCodeSearch(fr).Execute(ctx, map[string]any{
-			"search_text":tc.needle, "file_patterns":[]any{"src/"},
+			"search_text": tc.needle, "file_patterns": []any{"src/"},
 		})
-		if err != nil { t.Fatalf("revision %s: %v", tc.revision, err) }
+		if err != nil {
+			t.Fatalf("revision %s: %v", tc.revision, err)
+		}
 		found := strings.Contains(got, "File:")
-		if found != tc.found { t.Errorf("revision %s searching %s: %s", tc.revision, tc.needle, got) }
+		if found != tc.found {
+			t.Errorf("revision %s searching %s: %s", tc.revision, tc.needle, got)
+		}
 	}
-	for _, tc := range []struct{ revision string; found bool }{
+	for _, tc := range []struct {
+		revision string
+		found    bool
+	}{
 		{"1", true},
 		{"2", false},
 	} {
-		fr := &FileReader{RepoDir:root, SVN:true, Ref:tc.revision, Mode:ModeRange}
-		got, err := NewFileFind(fr).Execute(ctx, map[string]any{"query_name":"deleted.c"})
-		if err != nil { t.Fatal(err) }
+		fr := &FileReader{RepoDir: root, SVN: true, Ref: tc.revision, Mode: ModeRange}
+		got, err := NewFileFind(fr).Execute(ctx, map[string]any{"query_name": "deleted.c"})
+		if err != nil {
+			t.Fatal(err)
+		}
 		found := strings.Contains(got, "src/deleted.c")
-		if found != tc.found { t.Errorf("file_find at r%s: %s", tc.revision, got) }
+		if found != tc.found {
+			t.Errorf("file_find at r%s: %s", tc.revision, got)
+		}
 	}
 }
 
 func TestSVNPatternsAndTraversal(t *testing.T) {
-	for _, tc := range []struct{ name string; patterns []string; ok bool }{
+	for _, tc := range []struct {
+		name     string
+		patterns []string
+		ok       bool
+	}{
 		{"src/main.c", []string{"src/"}, true},
 		{"src/main.c", []string{"*.c"}, true},
 		{"src/main.c", []string{"src/**/*.c"}, true},
