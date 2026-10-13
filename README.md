@@ -44,7 +44,7 @@
 
 This repository, [smallfishworld/open-code-review-svn](https://github.com/smallfishworld/open-code-review-svn), is an **SVN-enabled fork** of the upstream [Alibaba OpenCodeReview](https://github.com/alibaba/open-code-review) project. It keeps the upstream Git review features while adding Subversion (SVN) working-copy and historical revision reviews.
 
-**Current fork release:** [v1.12.13-svn.1](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1) · [npm package](https://www.npmjs.com/package/@smallfishworld/open-code-review-svn) · [SVN CLI reference](pages/src/content/docs/en/cli-reference.md)
+**Current fork release:** [v1.12.13-svn.2](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.2) · [npm package](https://www.npmjs.com/package/@smallfishworld/open-code-review-svn) · [SVN CLI reference](pages/src/content/docs/en/cli-reference.md)
 
 ## What is Open Code Review?
 
@@ -119,7 +119,7 @@ The agent's strengths are concentrated where they matter most — dynamic decisi
 
 ```bash
 # Install the tested fork release
-npm install -g @smallfishworld/open-code-review-svn@1.12.13-svn.1
+npm install -g @smallfishworld/open-code-review-svn@1.12.13-svn.2
 
 # Or track the moving SVN release tag
 npm install -g @smallfishworld/open-code-review-svn@svn
@@ -127,9 +127,9 @@ npm install -g @smallfishworld/open-code-review-svn@svn
 
 After installation, the `ocr` command is available globally.
 
-For offline installation, download the matching Windows, macOS, or Linux binary (and `sha256sum.txt`) from the [fork's GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1). General upstream installation documentation is available at [Installation](https://open-codereview.ai/docs/installation); its upstream npm package is **not** this SVN-enabled fork.
+For offline installation, download the matching Windows, macOS, or Linux binary (and `sha256sum.txt`) from the [fork's GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.2). General upstream installation documentation is available at [Installation](https://open-codereview.ai/docs/installation); its upstream npm package is **not** this SVN-enabled fork.
 
-**Linux x86_64 fully offline archive:** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz) ([SHA-256](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz.sha256)). Download on an internet-connected computer, transfer both files to your offline Linux machine, then run:
+**Linux x86_64 fully offline archive:** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.2/linux-x86-64-offline.tar.gz) ([SHA-256](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.2/linux-x86-64-offline.tar.gz.sha256)). Download on an internet-connected computer, transfer both files to your offline Linux machine, then run:
 
 ```bash
 sha256sum -c linux-x86-64-offline.tar.gz.sha256
@@ -239,9 +239,10 @@ ocr review --repo /path/to/svn-working-copy --commit 1234
 - Historical review uses `svn diff` and reads file contents at the requested SVN revision with `svn cat`, so **uncommitted local edits do not change the historical snapshot being reviewed**.
 - In working-copy mode, unversioned (`?`) files are skipped until `svn add <path>` is run. Scheduled additions, deletions, filenames with spaces, and UTF-8 filenames are covered by SVN tests. Binary changes are detected but are not treated as reviewable source text.
 - `--preview` runs file selection without invoking an LLM; use it to verify scope before spending model tokens.
+- In SVN review, agent `code_search` and `file_find` use the SVN versioned file inventory instead of `git grep` / `git ls-files`. Workspace searches use the local files; historical searches read the selected revision. SVN regex searches use Go RE2 syntax (PCRE-only constructs are not supported).
 - Git-style `--resume` of historical reviews is **not a supported SVN workflow**. Git `--commit` and `--from`/`--to` continue to accept Git refs with their original Git semantics.
 
-See the [fork's source-level CLI reference](pages/src/content/docs/en/cli-reference.md) and [v1.12.13-svn.1 binaries](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1).
+See the [fork's source-level CLI reference](pages/src/content/docs/en/cli-reference.md) and [v1.12.13-svn.2 binaries](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.2).
 
 ## Documentation
 
