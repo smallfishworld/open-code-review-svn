@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +20,7 @@ const (
 	gitGrepTimeout  = 10 * time.Second
 )
 
-// CodeSearchProvider performs text search across the repository using git grep.
+// CodeSearchProvider uses git grep for Git and native SVN file enumeration for Subversion.
 type CodeSearchProvider struct {
 	FileReader *FileReader
 }
@@ -49,7 +50,13 @@ func (p *CodeSearchProvider) Execute(ctx context.Context, args map[string]any) (
 		return "Error: search_text is blank", nil
 	}
 
-	result, err := p.gitGrep(ctx, searchText, caseSensitive, usePerlRegexp, patterns)
+	var result string
+	var err error
+	if p.FileReader.SVN {
+		result, err = p.svnGrep(ctx, searchText, caseSensitive, usePerlRegexp, patterns)
+	} else {
+		result, err = p.gitGrep(ctx, searchText, caseSensitive, usePerlRegexp, patterns)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -270,4 +277,93 @@ func isNotGitRepoError(err error, stderr string) bool {
 		return true
 	}
 	return false
+}
+
+// svnGrep searches SVN-versioned working-copy files or historical revision
+// contents without launching Git. Results use the same readable format and
+// global match limit as gitGrep.
+func (p *CodeSearchProvider) svnGrep(parent context.Context, term string, caseSensitive, usePerlRegexp bool, patterns []string) (string, error) {
+	ctx, cancel := context.WithTimeout(parent, svnSearchTimeout)
+	defer cancel()
+
+	files, err := svnFiles(ctx, p.FileReader)
+	if err != nil {
+		return "", err
+	}
+
+	var expression *regexp.Regexp
+	if usePerlRegexp {
+		pattern := term
+		if !caseSensitive {
+			pattern = "(?i)" + pattern
+		}
+		expression, err = regexp.Compile(pattern)
+		if err != nil {
+			return "", fmt.Errorf("SVN code_search regex is invalid or uses unsupported PCRE syntax: %w", err)
+		}
+	}
+	needle := term
+	if !caseSensitive {
+		needle = strings.ToLower(term)
+	}
+
+	var output strings.Builder
+	totalMatches, displayed := 0, 0
+	for _, name := range files {
+		if err := ctx.Err(); err != nil {
+			return "", fmt.Errorf("SVN code_search timed out; try narrowing file_patterns: %w", err)
+		}
+		if !matchSVNFilePattern(name, patterns) {
+			continue
+		}
+
+		content, err := p.FileReader.Read(ctx, name)
+		if err != nil {
+			// Local deleted, inaccessible, and switched paths can be enumerated
+			// by svn status. They do not have searchable workspace contents.
+			// For history, however, content must match the requested revision.
+			if p.FileReader.Mode == ModeWorkspace {
+				continue
+			}
+			return "", fmt.Errorf("read SVN revision file %q: %w", name, err)
+		}
+		if len(content) > 8*1024*1024 || strings.IndexByte(content, 0) >= 0 {
+			continue
+		}
+		lines := strings.Split(content, "\n")
+		var fileResult strings.Builder
+		inFile := 0
+		for i, line := range lines {
+			if err := ctx.Err(); err != nil {
+				return "", fmt.Errorf("SVN code_search timed out: %w", err)
+			}
+			isMatch := false
+			if expression != nil {
+				isMatch = expression.MatchString(line)
+			} else if caseSensitive {
+				isMatch = strings.Contains(line, term)
+			} else {
+				isMatch = strings.Contains(strings.ToLower(line), needle)
+			}
+			if !isMatch {
+				continue
+			}
+			totalMatches++
+			if displayed < gitGrepMaxCount {
+				fmt.Fprintf(&fileResult, "%d|%s\n", i+1, line)
+				inFile++
+				displayed++
+			}
+		}
+		if inFile > 0 {
+			fmt.Fprintf(&output, "File: %s\nMatch lines: %d\n%s\n", name, inFile, fileResult.String())
+		}
+	}
+	if displayed == 0 {
+		return "No matches found", nil
+	}
+	if totalMatches > gitGrepMaxCount {
+		return fmt.Sprintf("Note: Showing the first %d of %d matches. Some files are partially shown or omitted entirely. Narrow file_patterns to see the rest.\n", gitGrepMaxCount, totalMatches) + output.String(), nil
+	}
+	return output.String(), nil
 }
