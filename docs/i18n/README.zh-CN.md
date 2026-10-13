@@ -129,6 +129,19 @@ npm install -g @smallfishworld/open-code-review-svn@svn
 
 如果需要离线安装，请到 [本 fork 的 GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1) 下载对应平台的 Windows、macOS 或 Linux 可执行文件及 `sha256sum.txt` 校验文件。官方[安装指南](https://open-codereview.ai/docs/installation)介绍的是上游软件，**上游 npm 包不包含本 fork 的 SVN 功能**。
 
+**Linux x86_64 专用离线包：** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz)（[SHA-256 校验文件](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz.sha256））。先在可联网电脑下载这两个文件，再复制到内网 Linux 设备上：
+
+```bash
+sha256sum -c linux-x86-64-offline.tar.gz.sha256
+tar -xzf linux-x86-64-offline.tar.gz
+cd linux-x86-64-offline
+sha256sum -c SHA256SUMS
+./ocr --version                 # 不安装也可直接运行
+./install.sh                   # 可选：安装到 ~/.local/bin
+```
+
+离线包自带可执行程序，安装时无需 Go、Node.js、npm 或联网下载；SVN 审查需系统已有 Subversion，AI 审查需可访问的模型服务（可使用内网模型 API）。
+
 #### 快速开始
 
 **1. 配置 LLM**
