@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/alibaba/open-code-review/internal/config/template"
+	"github.com/alibaba/open-code-review/internal/diff"
 	"github.com/alibaba/open-code-review/internal/llm"
 	"github.com/alibaba/open-code-review/internal/llmloop"
 	"github.com/alibaba/open-code-review/internal/scan"
@@ -198,6 +199,7 @@ func executeScan(opts scanOptions) (retErr error) {
 		RepoDir: cc.RepoDir,
 		Mode:    tool.ModeWorkspace,
 		Runner:  cc.GitRunner,
+		SVN:     !cc.IsGitRepo && diff.IsSVNWorkingCopy(cc.RepoDir),
 	}
 	tools := buildToolRegistry(rt.Collector, fileReader)
 
