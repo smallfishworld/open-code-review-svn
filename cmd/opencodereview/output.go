@@ -280,12 +280,12 @@ type jsonSummary struct {
 }
 
 type jsonToolCalls struct {
-	Total          int64                       `json:"total"`
-	DurationMSByTool map[string]int64         `json:"duration_ms_by_tool,omitempty"`
-	ByTool         map[string]int64            `json:"by_tool"`
-	Failure        int64                       `json:"failure"`
-	FailureByTool  map[string]int64            `json:"failure_by_tool"`
-	FailureDetails []llmloop.ToolFailureDetail `json:"failure_details"`
+	Total            int64                       `json:"total"`
+	DurationMSByTool map[string]int64            `json:"duration_ms_by_tool,omitempty"`
+	ByTool           map[string]int64            `json:"by_tool"`
+	Failure          int64                       `json:"failure"`
+	FailureByTool    map[string]int64            `json:"failure_by_tool"`
+	FailureDetails   []llmloop.ToolFailureDetail `json:"failure_details"`
 }
 
 func newJSONToolCalls(toolCalls map[string]int64, failures []llmloop.ToolFailureDetail, durations ...map[string]int64) *jsonToolCalls {

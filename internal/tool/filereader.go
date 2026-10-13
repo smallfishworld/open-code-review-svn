@@ -67,11 +67,11 @@ type FileReader struct {
 	Runner *gitcmd.Runner
 	SVN    bool // SVN history uses svn cat rather than git show
 	// The caches are scoped to this reader (one review run), never shared globally.
-	cacheMu      sync.Mutex
-	fileCache    map[string]string
-	cacheBytes   int
-	svnFilesMu   sync.Mutex
-	svnFileNames []string
+	cacheMu       sync.Mutex
+	fileCache     map[string]string
+	cacheBytes    int
+	svnFilesMu    sync.Mutex
+	svnFileNames  []string
 	svnFilesReady bool
 }
 

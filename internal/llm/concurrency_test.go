@@ -12,8 +12,8 @@ import (
 )
 
 type countingLLMClient struct {
-	active int64
-	peak   int64
+	active  int64
+	peak    int64
 	entered chan struct{}
 	release chan struct{}
 }
