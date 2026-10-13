@@ -1,0 +1,45 @@
+name: Backfill Linux Offline Archive v1.12.13
+on:
+  push:
+    branches:
+      - fix/backfill-linux-offline-v1.12.13-svn.1
+
+permissions:
+  contents: write
+
+jobs:
+  upload-offline-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: v1.12.13-svn.1
+      RELEASE_VERSION: 1.12.13-svn.1
+      REPO: smallfishworld/open-code-review-svn
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify existing Release binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh release download "$RELEASE_TAG" --repo "$REPO" \
+            --pattern 'opencodereview-linux-amd64' \
+            --pattern 'sha256sum.txt' \
+            --dir dist
+          grep -q ' opencodereview-linux-amd64$' dist/sha256sum.txt
+          (cd dist && sha256sum -c --ignore-missing sha256sum.txt)
+          file dist/opencodereview-linux-amd64
+      - name: Package, validate, and upload archive to existing Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/package-linux-offline.sh dist/opencodereview-linux-amd64 dist "$RELEASE_VERSION"
+          tmp="$(mktemp -d)"
+          tar -xzf dist/linux-x86-64-offline.tar.gz -C "$tmp"
+          (cd "$tmp/linux-x86-64-offline" && sha256sum -c SHA256SUMS && ./ocr --version)
+          (cd dist && sha256sum linux-x86-64-offline.tar.gz > linux-x86-64-offline.tar.gz.sha256)
+          gh release upload "$RELEASE_TAG" \
+            dist/linux-x86-64-offline.tar.gz \
+            dist/linux-x86-64-offline.tar.gz.sha256 \
+            --repo "$REPO"
