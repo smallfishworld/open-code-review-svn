@@ -129,7 +129,7 @@ npm install -g @smallfishworld/open-code-review-svn@svn
 
 如果需要离线安装，请到 [本 fork 的 GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1) 下载对应平台的 Windows、macOS 或 Linux 可执行文件及 `sha256sum.txt` 校验文件。官方[安装指南](https://open-codereview.ai/docs/installation)介绍的是上游软件，**上游 npm 包不包含本 fork 的 SVN 功能**。
 
-**Linux x86_64 专用离线包：** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz)（[SHA-256 校验文件](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz.sha256））。先在可联网电脑下载这两个文件，再复制到内网 Linux 设备上：
+**Linux x86_64 专用离线包：** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz)（[SHA-256 校验文件](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz.sha256)）。先在可联网电脑下载这两个文件，再复制到内网 Linux 设备上：
 
 ```bash
 sha256sum -c linux-x86-64-offline.tar.gz.sha256
