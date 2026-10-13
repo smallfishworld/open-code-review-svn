@@ -44,7 +44,7 @@
 
 本仓库 [smallfishworld/open-code-review-svn](https://github.com/smallfishworld/open-code-review-svn) 基于阿里巴巴官方 [OpenCodeReview](https://github.com/alibaba/open-code-review) 维护，在保留上游 Git 代码审查能力的同时，新增 **SVN 工作副本审查、指定版本号审查以及版本区间审查**。
 
-**当前版本：** [v1.12.13-svn.1](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1) · [npm 软件包](https://www.npmjs.com/package/@smallfishworld/open-code-review-svn) · [SVN CLI 参数参考](../../pages/src/content/docs/zh/cli-reference.md)
+**当前版本：** [v1.12.13-svn.2](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.2) · [npm 软件包](https://www.npmjs.com/package/@smallfishworld/open-code-review-svn) · [SVN CLI 参数参考](../../pages/src/content/docs/zh/cli-reference.md)
 
 ## Open Code Review 是什么？
 
@@ -119,7 +119,7 @@ Open Code Review 的核心设计理念是将确定性工程与 Agent 结合，�
 
 ```bash
 # 安装经过测试的 SVN 增强版本
-npm install -g @smallfishworld/open-code-review-svn@1.12.13-svn.1
+npm install -g @smallfishworld/open-code-review-svn@1.12.13-svn.2
 
 # 或跟随 svn 发布标签更新
 npm install -g @smallfishworld/open-code-review-svn@svn
@@ -127,9 +127,9 @@ npm install -g @smallfishworld/open-code-review-svn@svn
 
 安装后，`ocr` 命令即可全局使用。
 
-如果需要离线安装，请到 [本 fork 的 GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1) 下载对应平台的 Windows、macOS 或 Linux 可执行文件及 `sha256sum.txt` 校验文件。官方[安装指南](https://open-codereview.ai/docs/installation)介绍的是上游软件，**上游 npm 包不包含本 fork 的 SVN 功能**。
+如果需要离线安装，请到 [本 fork 的 GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.2) 下载对应平台的 Windows、macOS 或 Linux 可执行文件及 `sha256sum.txt` 校验文件。官方[安装指南](https://open-codereview.ai/docs/installation)介绍的是上游软件，**上游 npm 包不包含本 fork 的 SVN 功能**。
 
-**Linux x86_64 专用离线包：** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz)（[SHA-256 校验文件](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.1/linux-x86-64-offline.tar.gz.sha256)）。先在可联网电脑下载这两个文件，再复制到内网 Linux 设备上：
+**Linux x86_64 专用离线包：** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.2/linux-x86-64-offline.tar.gz)（[SHA-256 校验文件](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.2/linux-x86-64-offline.tar.gz.sha256)）。先在可联网电脑下载这两个文件，再复制到内网 Linux 设备上：
 
 ```bash
 sha256sum -c linux-x86-64-offline.tar.gz.sha256
@@ -239,9 +239,10 @@ ocr review --repo /path/to/svn-working-copy --commit 1234
 - 历史审查通过 `svn diff` 获取历史修改，使用 `svn cat` 读取目标历史版本的文件内容，**不会把当前工作区尚未提交的文件内容当成历史版本内容**。
 - 工作副本模式支持已修改、计划新增、计划删除的文件；未受版本控制的 `?` 文件需要先执行 `svn add <path>`。已针对空格路径、中文文件名进行回归测试。二进制变更可识别，但不会当作源代码文本审查。
 - `--preview` 只运行文件筛选，不调用大模型；建议先预览审查范围，再执行正式审查。
+- **SVN 模式下 `code_search` 与 `file_find` 不再调用 `git grep` 或 `git ls-files`**：工作副本使用 SVN 已纳入版本管理的文件，历史审查按目标 SVN 版本读取内容。正则搜索使用 Go RE2 语法，不支持 PCRE 独有的表达式。
 - **SVN 历史审查暂不支持 Git 风格的 `--resume` 工作流**。Git 模式的 `--commit`、`--from` 和 `--to` 仍使用原来的 Git 语义。
 
-详见 [本 fork 的中文 CLI 参考](../../pages/src/content/docs/zh/cli-reference.md)和 [v1.12.13-svn.1 离线安装包](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.1)。
+详见 [本 fork 的中文 CLI 参考](../../pages/src/content/docs/zh/cli-reference.md)和 [v1.12.13-svn.2 离线安装包](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.2)。
 
 ## 文档
 
