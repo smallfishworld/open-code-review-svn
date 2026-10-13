@@ -43,6 +43,7 @@ type reviewOptions struct {
 	provider              string
 	model                 string
 	concurrency           int
+	llmMaxConcurrency     int
 	concurrentTaskTimeout int
 	maxTools              int
 	maxGitProcs           int
@@ -178,6 +179,9 @@ func executeReviewContext(ctx context.Context, opts reviewOptions) (retErr error
 	})
 	if err != nil {
 		return err
+	}
+	if opts.llmMaxConcurrency > 0 {
+		rt.Client = llm.LimitConcurrency(rt.Client, opts.llmMaxConcurrency)
 	}
 	maxTokens, err := resolveMaxTokens(cc.Template.MaxTokens, rt.AppCfg, opts.maxTokens)
 	if err != nil {

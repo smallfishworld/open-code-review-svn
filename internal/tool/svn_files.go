@@ -23,6 +23,25 @@ const svnSearchTimeout = 30 * time.Second
 // and local edits; history mode enumerates the repository tree at the target
 // revision rather than the current working tree. No Git command is invoked.
 func svnFiles(parent context.Context, fr *FileReader) ([]string, error) {
+	// Serialize the first inventory build, so parallel search tools do not
+	// each spawn an expensive svn status/list for the same review.
+	fr.svnFilesMu.Lock()
+	defer fr.svnFilesMu.Unlock()
+	if err := parent.Err(); err != nil {
+		return nil, err
+	}
+	if fr.svnFilesReady {
+		return append([]string(nil), fr.svnFileNames...), nil
+	}
+	files, err := svnFilesUncached(parent, fr)
+	if err == nil {
+		fr.svnFileNames = append([]string(nil), files...)
+		fr.svnFilesReady = true
+	}
+	return files, err
+}
+
+func svnFilesUncached(parent context.Context, fr *FileReader) ([]string, error) {
 	ctx, cancel := context.WithTimeout(parent, svnSearchTimeout)
 	defer cancel()
 
