@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
@@ -88,9 +89,9 @@ func svnFiles(parent context.Context, fr *FileReader) ([]string, error) {
 		for _, e := range status.Entries {
 			switch e.WC.Item {
 			case "normal", "modified", "added", "replaced", "conflicted", "merged":
-				if e.Kind != "dir" && e.Kind != "directory" && filepath.Ext(e.Path) != "" {
-					add(e.Path)
-				} else if e.Kind != "dir" && e.Kind != "directory" {
+				path := e.Path
+				if !filepath.IsAbs(path) { path = filepath.Join(fr.RepoDir, path) }
+				if info, err := os.Stat(path); err == nil && info.Mode().IsRegular() {
 					add(e.Path)
 				}
 			}
