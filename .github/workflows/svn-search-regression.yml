@@ -8,7 +8,7 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -23,9 +23,9 @@ jobs:
         run: |
           command -v svn || (sudo apt-get update && sudo apt-get install -y subversion)
           svn --version --quiet
-      - name: Format SVN search changes
+      - name: Verify Go formatting
         run: |
-          gofmt -s -w internal/tool/svn_files.go internal/tool/svn_search_test.go internal/tool/code_search.go internal/tool/file_find.go cmd/opencodereview/scan_cmd.go
+          test -z "$(gofmt -s -l internal/tool/svn_files.go internal/tool/svn_search_test.go internal/tool/code_search.go internal/tool/file_find.go cmd/opencodereview/scan_cmd.go)"
       - name: Go build
         run: go build ./cmd/opencodereview
       - name: SVN search integration tests
@@ -34,16 +34,3 @@ jobs:
         run: go test -count=1 ./internal/tool
       - name: Full Go suite
         run: go test -count=1 ./...
-      - name: Save formatting to branch
-        if: github.event_name == 'push'
-        env:
-          BRANCH: fix/svn-native-code-search-and-file-find-20261013
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add internal/tool/svn_files.go internal/tool/svn_search_test.go internal/tool/code_search.go internal/tool/file_find.go cmd/opencodereview/scan_cmd.go
-          if ! git diff --cached --quiet; then
-            git commit -m 'style(svn): format native search implementation'
-            git pull --rebase origin "${BRANCH}"
-            git push origin "HEAD:${BRANCH}"
-          fi
