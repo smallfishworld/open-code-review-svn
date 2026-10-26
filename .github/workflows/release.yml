@@ -3,6 +3,10 @@ name: Release
 on:
   push:
     tags: ['v*']
+    # Publish the SVN fork from a versioned branch created only after main CI
+    # passes. The release action creates the immutable tag in the same run;
+    # GITHUB_TOKEN-created tags do not trigger a second release workflow.
+    branches: ['release/v1.13.3-svn.1']
   workflow_dispatch:
 
 permissions:
@@ -128,7 +132,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: '0'
         run: |
-          VERSION=${GITHUB_REF_NAME}
+          VERSION=${GITHUB_REF_NAME#release/}
           GIT_COMMIT=$(git rev-parse --short HEAD)
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           LD_FLAGS="-s -w -X main.Version=${VERSION} -X main.GitCommit=${GIT_COMMIT} -X main.BuildDate=${BUILD_DATE}"
@@ -169,13 +173,19 @@ jobs:
         id: notes
         shell: bash
         run: |
-          CURRENT_TAG="${GITHUB_REF_NAME}"
-          PREV_TAG=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || echo "")
+          CURRENT_TAG="${GITHUB_REF_NAME#release/}"
+          if git rev-parse -q --verify "refs/tags/${CURRENT_TAG}" >/dev/null; then
+            PREV_TAG=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || echo "")
+            CURRENT_REV="${CURRENT_TAG}"
+          else
+            PREV_TAG=$(git describe --tags --abbrev=0 "HEAD^" 2>/dev/null || echo "")
+            CURRENT_REV=HEAD
+          fi
 
           if [ -z "$PREV_TAG" ]; then
-            RANGE="$CURRENT_TAG"
+            RANGE="$CURRENT_REV"
           else
-            RANGE="${PREV_TAG}..${CURRENT_TAG}"
+            RANGE="${PREV_TAG}..${CURRENT_REV}"
           fi
 
           FEATS=""
@@ -201,6 +211,7 @@ jobs:
           done < <(git log --oneline --no-merges "$RANGE")
 
           {
+            echo "release_tag=${CURRENT_TAG}"
             echo "body<<RELEASE_NOTES_EOF"
             if [ -n "$FEATS" ]; then
               printf '## 🚀 Features\n\n%s\n' "$FEATS"
@@ -246,6 +257,8 @@ jobs:
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           body: ${{ steps.notes.outputs.body }}
+          tag_name: ${{ steps.notes.outputs.release_tag }}
+          target_commitish: ${{ github.sha }}
           files: |
             opencodereview-*
             linux-x86-64-offline.tar.gz
@@ -314,7 +327,8 @@ jobs:
 
       - name: Publish platform packages
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${GITHUB_REF_NAME#release/}"
+          VERSION="${VERSION#v}"
           PLATFORMS="darwin-arm64:opencodereview-darwin-arm64:opencodereview
           darwin-x64:opencodereview-darwin-amd64:opencodereview
           linux-arm64:opencodereview-linux-arm64:opencodereview
@@ -347,7 +361,8 @@ jobs:
 
       - name: Inject version and optionalDependencies
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${GITHUB_REF_NAME#release/}"
+          VERSION="${VERSION#v}"
           jq --arg v "$VERSION" '
             .version = $v |
             .optionalDependencies |= with_entries(.value = $v)
@@ -355,7 +370,8 @@ jobs:
 
       - name: Publish to npm
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${GITHUB_REF_NAME#release/}"
+          VERSION="${VERSION#v}"
           pkg_name=$(jq -r '.name' package.json)
           already=$(npm view "${pkg_name}@${VERSION}" version 2>/dev/null || true)
           if [ "$already" = "$VERSION" ]; then
