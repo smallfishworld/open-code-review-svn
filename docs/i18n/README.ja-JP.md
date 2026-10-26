@@ -40,6 +40,10 @@
 
 ---
 
+## SVN対応フォークについて
+
+このフォークは公式 Open Code Review の Git レビュー機能を維持し、SVN ワーキングコピーとリビジョンのレビューを追加しています。最新版は [GitHub Releases](https://github.com/smallfishworld/open-code-review-svn/releases/latest) から入手できます。
+
 ## Open Code Reviewとは？
 
 Open Code ReviewはAIを活用したコードレビューCLIツールです。もともとはAlibaba Group社内の公式AIコードレビューアシスタントとして誕生し、過去2年間で数万人の開発者にサービスを提供し、数百万件のコード欠陥を発見してきました。大規模な環境で徹底的に検証された後、コミュニティ向けのオープンソースプロジェクトとして公開されました。モデルのエンドポイントを設定するだけで使い始められます。

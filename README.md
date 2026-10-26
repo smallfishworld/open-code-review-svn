@@ -46,8 +46,6 @@ This repository, [smallfishworld/open-code-review-svn](https://github.com/smallf
 
 **Current fork release:** [Latest GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/latest) · [npm package](https://www.npmjs.com/package/@smallfishworld/open-code-review-svn) · [SVN CLI reference](pages/src/content/docs/en/cli-reference.md)
 
-### Install the SVN fork
-
 ```bash
 npm install -g @smallfishworld/open-code-review-svn@svn
 ocr review --repo /path/to/svn-working-copy --preview
