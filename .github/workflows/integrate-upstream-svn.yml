@@ -1,5 +1,8 @@
 name: Rebuild SVN fork on upstream v1.13.3
 on:
+  push:
+    branches: [rebase/upstream-v1.13.3]
+    paths: ['.github/workflows/integrate-upstream-svn.yml']
   workflow_dispatch:
 permissions:
   contents: write
