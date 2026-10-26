@@ -14,12 +14,28 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 const (
 	gitGrepMaxCount = 100
+	// Keep even a single huge source line from dominating the LLM context.
+	maxCodeSearchLineBytes = 1024
 	gitGrepTimeout  = 10 * time.Second
 )
+
+// boundedSearchLine preserves UTF-8 while capping huge single-line matches.
+// Both SVN and Git search must use this before returning text to the agent.
+func boundedSearchLine(line string) string {
+	if len(line) <= maxCodeSearchLineBytes {
+		return line
+	}
+	end := maxCodeSearchLineBytes
+	for end > 0 && !utf8.RuneStart(line[end]) {
+		end--
+	}
+	return line[:end] + "... [line truncated]"
+}
 
 // CodeSearchProvider uses git grep for Git and native SVN file enumeration for Subversion.
 type CodeSearchProvider struct {
@@ -255,7 +271,7 @@ func (p *CodeSearchProvider) gitGrep(ctx context.Context, searchText string, cas
 			truncated = true
 			continue
 		}
-		m := match{lineNum: ln, content: parts[offset+2]}
+		m := match{lineNum: ln, content: boundedSearchLine(parts[offset+2])}
 		if !seen[fname] {
 			seen[fname] = true
 			fileOrder = append(fileOrder, fname)
@@ -375,7 +391,7 @@ func (p *CodeSearchProvider) svnGrep(parent context.Context, term string, caseSe
 			}
 			totalMatches++
 			if displayed < gitGrepMaxCount {
-				fmt.Fprintf(&fileResult, "%d|%s\n", i+1, line)
+				fmt.Fprintf(&fileResult, "%d|%s\n", i+1, boundedSearchLine(line))
 				inFile++
 				displayed++
 			}
