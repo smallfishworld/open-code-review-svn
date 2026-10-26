@@ -1,0 +1,57 @@
+name: Upstream SVN Migration Assessment
+on:
+  push:
+    branches: [rebase/upstream-v1.13.3]
+    paths:
+      - '.github/workflows/upstream-migration-assessment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  assess:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compare upstream and identify merge conflicts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/alibaba/open-code-review.git
+          git fetch --no-tags upstream 375f64cd6f67a48a135da83cfcf59c52669a09cb
+          mkdir -p migration-report
+          {
+            echo '# Upstream v1.13.3 migration assessment'
+            echo
+            echo '## Current fork head'
+            git rev-parse HEAD
+            echo
+            echo '## Merge base'
+            git merge-base HEAD FETCH_HEAD || true
+            echo
+            echo '## Fork-only commits'
+            git log --format='%h %s' FETCH_HEAD..HEAD | head -100
+            echo
+            echo '## Upstream-only commits'
+            git log --format='%h %s' HEAD..FETCH_HEAD | head -100
+            echo
+            echo '## Merge conflict simulation'
+          } > migration-report/report.txt
+          git config user.email ci-migration@example.invalid
+          git config user.name 'Migration Assessment'
+          if git merge --no-commit --no-ff FETCH_HEAD > migration-report/merge-output.txt 2>&1; then
+            echo 'Clean merge' >> migration-report/report.txt
+            git diff --cached --stat >> migration-report/report.txt
+            git merge --abort || git reset --hard HEAD
+          else
+            echo 'Conflicts detected; no automatic resolution attempted' >> migration-report/report.txt
+            git diff --name-only --diff-filter=U >> migration-report/report.txt || true
+            git merge --abort || git reset --hard HEAD
+          fi
+          cat migration-report/report.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: upstream-v1.13.3-migration-assessment
+          path: migration-report/
