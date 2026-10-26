@@ -16,7 +16,7 @@ concurrency:
 jobs:
   pr-commit-policy:
     name: PR Commit Policy
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     container:
       image: node:24.18.0

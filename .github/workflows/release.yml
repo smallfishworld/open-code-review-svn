@@ -100,7 +100,7 @@ jobs:
 
   build:
     if: github.event_name == 'push'
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
       image: golang:1.26.9
@@ -150,7 +150,7 @@ jobs:
 
   release:
     needs: build
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: write

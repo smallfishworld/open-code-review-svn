@@ -141,7 +141,7 @@ test("manual preflight is separated from tag publishing", () => {
   assert.match(jobText("release"), /^    needs: build$/m);
   assert.match(jobText("npm-publish"), /^    needs: release$/m);
   for (const job of ["build", "release"]) {
-    assert.match(jobText(job), /^    runs-on: self-hosted$/m);
+    assert.match(jobText(job), /^    runs-on: ubuntu-latest$/m);
   }
   for (const job of ["verify-trusted-publishing", "npm-publish"]) {
     assert.match(jobText(job), /^    runs-on: ubuntu-latest$/m);
