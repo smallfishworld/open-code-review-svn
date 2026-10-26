@@ -20,7 +20,7 @@ func TestBoundedSearchLine(t *testing.T) {
 		!strings.HasSuffix(got, "... [line truncated]") {
 		t.Fatalf("giant source line not bounded: length=%d", len(got))
 	}
-	multi := strings.Repeat("中文字符", 400)
+	multi := strings.Repeat("\u4e2d\u6587\u5b57\u7b26", 400)
 	got = boundedSearchLine(multi)
 	if !utf8.ValidString(got) || !strings.HasSuffix(got, "... [line truncated]") {
 		t.Fatalf("multibyte source line truncated incorrectly: %q", got)
