@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 alibaba/open-code-review Contributors
 # Create a network-independent Linux x86_64 OCR CLI tarball.
 set -euo pipefail
 
