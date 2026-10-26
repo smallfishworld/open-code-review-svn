@@ -171,6 +171,10 @@ ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
 
+### SVN レビュー: 作業コピー・単一リビジョン・範囲
+
+SVN 作業コピーでは `ocr review --repo /path/to/wc --preview` を使用します。特定のリビジョンは `--commit 1234`、範囲は `--from 1200 --to 1234` でレビューできます。
+
 ## ドキュメント
 
 完全なドキュメントは **[open-codereview.ai/docs](https://open-codereview.ai/docs)** にあります：

@@ -171,6 +171,10 @@ ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
 
+### SVN 리뷰: 작업 복사본, 단일 리비전, 리비전 범위
+
+SVN 작업 복사본은 `ocr review --repo /path/to/wc --preview`로 확인합니다. 단일 리비전에는 `--commit 1234`, 구간 리뷰에는 `--from 1200 --to 1234`를 사용합니다.
+
 ## Documentation
 
 전체 문서는 **[open-codereview.ai/docs](https://open-codereview.ai/docs)** 에서 확인할 수 있습니다:

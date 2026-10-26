@@ -171,6 +171,10 @@ ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
 
+### Ревью SVN: рабочая копия, отдельная ревизия и диапазон
+
+Для рабочей копии SVN используйте `ocr review --repo /path/to/wc --preview`. Отдельная ревизия проверяется через `--commit 1234`, диапазон через `--from 1200 --to 1234`.
+
 ## Документация
 
 Полная документация доступна на **[open-codereview.ai/docs](https://open-codereview.ai/docs)**:
