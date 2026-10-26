@@ -19,17 +19,26 @@ echo 'int unicode = 2;' > "$wc/中文文件.c"
 svn delete "$wc/src/deleted.c" >/dev/null
 echo 'int new_file = 2;' > "$wc/src/nested/new.c"
 svn add "$wc/src/nested/new.c" >/dev/null
+# SVN binary MIME metadata requires a distinct diff path.
+printf '\\000\\001\\377' > "$wc/asset.bin"
+svn add "$wc/asset.bin" >/dev/null
+svn propset svn:mime-type application/octet-stream "$wc/asset.bin" >/dev/null
 svn commit "$wc" -m second >/dev/null
+# Move a file after r2: historical r2 content must remain readable by peg URL.
+svn move "$wc/src/nested/new.c" "$wc/src/nested/moved.c" >/dev/null
+svn commit "$wc" -m third >/dev/null
 echo LOCAL_DIRTY_ONLY > "$wc/src/main.c"
 echo 'int scheduled = 3;' > "$wc/scheduled.c"
 svn add "$wc/scheduled.c" >/dev/null
 echo 'int untracked = 4;' > "$wc/untracked.c"
-for mode in commit range workspace subdir; do
+for mode in commit range workspace subdir commit3 range13; do
   case "$mode" in
     commit) args=(--repo "$wc" --commit 2);;
     range) args=(--repo "$wc" --from 1 --to 2);;
     workspace) args=(--repo "$wc");;
     subdir) args=(--repo "$wc/src/nested" --commit 2);;
+    commit3) args=(--repo "$wc" --commit 3);;
+    range13) args=(--repo "$wc" --from 1 --to 3);;
   esac
   timeout 40s "$ocr" review "${args[@]}" --preview --format json > "$tmp/$mode.json"
 done
@@ -41,15 +50,17 @@ def get(name):
     assert obj['total_files']==len(obj['files']),name
     return {x['path']:x for x in obj['files']}
 commit=get('commit')
-for path,status in {'src/main.c':'modified','src/deleted.c':'deleted','src/nested/new.c':'added','中文文件.c':'modified'}.items():
+for path,status in {'src/main.c':'modified','src/deleted.c':'deleted','src/nested/new.c':'added','中文文件.c':'modified','asset.bin':'binary'}.items():
     assert commit[path]['status']==status, (path,commit)
 assert set(commit)==set(get('range'))==set(get('subdir'))
 assert 'scheduled.c' not in commit
+assert 'src/nested/moved.c' in get('commit3')
+assert 'src/nested/moved.c' in get('range13')
 workspace=get('workspace')
 assert workspace['src/main.c']['status']=='modified'
 assert workspace['scheduled.c']['status']=='added'
 assert 'untracked.c' not in workspace
-print('PASS: SVN real repo commit/range/workspace/subdir, Chinese paths, adds/deletes, dirty checkout')
+print('PASS: SVN real repo r2/r3/range, binary, move, historical peg, dirty workspace, UTF-8')
 PY
 for args in '--commit invalid' '--commit 0' '--from 2 --to 1'; do
   if "$ocr" review --repo "$wc" $args --preview --format json >/dev/null 2>&1; then
