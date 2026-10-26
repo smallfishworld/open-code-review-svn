@@ -20,7 +20,7 @@ svn delete "$wc/src/deleted.c" >/dev/null
 echo 'int new_file = 2;' > "$wc/src/nested/new.c"
 svn add "$wc/src/nested/new.c" >/dev/null
 # SVN binary MIME metadata requires a distinct diff path.
-printf '\\000\\001\\377' > "$wc/asset.bin"
+python3 -c 'import sys; open(sys.argv[1], "wb").write(bytes([0, 1, 255]))' "$wc/asset.bin"
 svn add "$wc/asset.bin" >/dev/null
 svn propset svn:mime-type application/octet-stream "$wc/asset.bin" >/dev/null
 svn commit "$wc" -m second >/dev/null
