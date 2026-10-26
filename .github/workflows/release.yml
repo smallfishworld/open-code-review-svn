@@ -228,8 +228,19 @@ jobs:
           pattern: binary-*
           merge-multiple: true
 
+      - name: Bundle and validate Linux x86_64 offline installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/package-linux-offline.sh opencodereview-linux-amd64 . "${GITHUB_REF_NAME#v}"
+          test -s linux-x86-64-offline.tar.gz
+          stage="$(mktemp -d)"
+          trap 'rm -rf "$stage"' EXIT
+          tar -xzf linux-x86-64-offline.tar.gz -C "$stage"
+          (cd "$stage/linux-x86-64-offline" && sha256sum -c SHA256SUMS && ./ocr --version)
+
       - name: Generate checksums
-        run: sha256sum opencodereview-* | sort > sha256sum.txt
+        run: sha256sum opencodereview-* linux-x86-64-offline.tar.gz | sort > sha256sum.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
@@ -237,6 +248,7 @@ jobs:
           body: ${{ steps.notes.outputs.body }}
           files: |
             opencodereview-*
+            linux-x86-64-offline.tar.gz
             sha256sum.txt
 
       - name: Attest release artifacts
@@ -244,9 +256,14 @@ jobs:
         with:
           subject-path: |
             opencodereview-*
+            linux-x86-64-offline.tar.gz
             sha256sum.txt
 
   npm-publish:
+    # The fork has an existing NPM_TOKEN secret. Support it without giving up
+    # official trusted publishing if the registry connection is configured.
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     needs: release
     # Must stay cloud-hosted: npm refuses an OIDC exchange from a self-hosted
     # runner. The heavy build matrix above is unaffected.
@@ -265,6 +282,17 @@ jobs:
 
       - name: Install jq
         run: apt-get update && apt-get install -y jq
+
+      - name: Configure npm authentication when fork token is available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' >> "${HOME}/.npmrc"
+            echo 'Configured npm token from repository secret'
+          else
+            echo 'No NPM_TOKEN configured; npm trusted publishing must be enabled'
+          fi
 
       # Keep a tested npm baseline without downgrading a newer bundled version.
       - name: Ensure npm supports trusted publishing
@@ -312,7 +340,7 @@ jobs:
             if [ "$already" = "$VERSION" ]; then
               echo "Skip: ${pkg_name}@${VERSION} already published"
             else
-              npm publish "$pkg_dir" --access public --provenance
+              npm publish "$pkg_dir" --access public --provenance --tag svn
               echo "Published: ${pkg_name}@${VERSION}"
             fi
           done
@@ -333,6 +361,6 @@ jobs:
           if [ "$already" = "$VERSION" ]; then
             echo "Skip: ${pkg_name}@${VERSION} already published"
           else
-            npm publish --access public --provenance
+            npm publish --access public --provenance --tag svn
             echo "Published: ${pkg_name}@${VERSION}"
           fi
