@@ -44,7 +44,7 @@ func svnSearchFixture(t *testing.T) string {
 	run("", "svn", "checkout", "file://"+filepath.ToSlash(repository), wc)
 	write("src/hello.c", "const char* msg = \"OLD_DATA_ONLY\";\n")
 	write("src/deleted.c", "const char* msg = \"DELETED_AT_R2\";\n")
-	write("src/中文文件.c", "const char* name = \"UTF8_NAME_ONLY\";\n")
+	write("src/\u4e2d\u6587\u6587\u4ef6.c", "const char* name = \"UTF8_NAME_ONLY\";\n")
 	write("space name.c", "const char* space = \"SPACE_NAME_ONLY\";\n")
 	run(wc, "svn", "add", "src", "space name.c")
 	run(wc, "svn", "commit", "-m", "r1")
@@ -68,7 +68,7 @@ func TestSVNNativeSearchWorkspace(t *testing.T) {
 	for _, tc := range []struct{ text, want string }{
 		{"LOCAL_ONLY", "src/hello.c"},
 		{"SCHEDULED_ADD_ONLY", "src/added.c"},
-		{"UTF8_NAME_ONLY", "src/中文文件.c"},
+		{"UTF8_NAME_ONLY", "src/\u4e2d\u6587\u6587\u4ef6.c"},
 		{"SPACE_NAME_ONLY", "space name.c"},
 	} {
 		got, err := code.Execute(ctx, map[string]any{"search_text": tc.text})
@@ -80,7 +80,7 @@ func TestSVNNativeSearchWorkspace(t *testing.T) {
 		t.Errorf("untracked files should not be searched: %q, %v", got, err)
 	}
 	if got, err := code.Execute(ctx, map[string]any{
-		"search_text": "LOCAL_ONLY", "file_patterns": []any{"src/中文*.c"},
+		"search_text": "LOCAL_ONLY", "file_patterns": []any{"src/\u4e2d\u6587*.c"},
 	}); err != nil || got != "No matches found" {
 		t.Errorf("file_patterns should narrow SVN search: %q, %v", got, err)
 	}
@@ -96,7 +96,7 @@ func TestSVNNativeSearchWorkspace(t *testing.T) {
 	}
 	for _, tc := range []struct{ query, want string }{
 		{"hello.c", "src/hello.c"},
-		{"中文文件", "src/中文文件.c"},
+		{"\u4e2d\u6587\u6587\u4ef6", "src/\u4e2d\u6587\u6587\u4ef6.c"},
 		{"added.c", "src/added.c"},
 	} {
 		got, err := find.Execute(ctx, map[string]any{"query_name": tc.query})
@@ -164,7 +164,7 @@ func TestSVNPatternsAndTraversal(t *testing.T) {
 		{"src/main.c", []string{"*.c"}, true},
 		{"src/main.c", []string{"src/**/*.c"}, true},
 		{"test/main.c", []string{"src/"}, false},
-		{"src/中文文件.c", []string{"src/中文*.c"}, true},
+		{"src/\u4e2d\u6587\u6587\u4ef6.c", []string{"src/\u4e2d\u6587*.c"}, true},
 	} {
 		if got := matchSVNFilePattern(tc.name, tc.patterns); got != tc.ok {
 			t.Errorf("match(%q,%q)=%v want %v", tc.name, tc.patterns, got, tc.ok)
