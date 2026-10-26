@@ -19,9 +19,10 @@ import (
 
 const (
 	gitGrepMaxCount = 100
+	gitGrepTimeout  = 10 * time.Second
+
 	// Keep even a single huge source line from dominating the LLM context.
 	maxCodeSearchLineBytes = 1024
-	gitGrepTimeout  = 10 * time.Second
 )
 
 // boundedSearchLine preserves UTF-8 while capping huge single-line matches.
