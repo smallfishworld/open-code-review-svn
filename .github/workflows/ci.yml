@@ -25,6 +25,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Subversion needs a UTF-8 native locale to enumerate non-ASCII filenames.
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
     container:
       image: golang:1.26.10
       options: --cpus=2
