@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 alibaba/open-code-review Contributors
 # Create a network-independent Linux x86_64 OCR CLI tarball.
 set -euo pipefail
 
@@ -38,10 +39,10 @@ printf 'Run: %s/ocr --version\n' "$target"
 INSTALL
 chmod 0755 "$pkg/install.sh"
 
-cat > "$pkg/README.md" <<DOC
+cat > "$pkg/README.md" <<'DOC'
 # OpenCodeReview SVN fork — Linux x86_64 offline package
 
-Release: v${release_version}
+Release: v@RELEASE_VERSION@
 Platform: Linux x86_64 / AMD64
 Source: https://github.com/smallfishworld/open-code-review-svn
 
@@ -90,6 +91,8 @@ reviews, configure a reachable model API (a LAN-hosted model works);
 The binary comes from the corresponding GitHub Release artifact
 `opencodereview-linux-amd64`.
 DOC
+
+sed -i "s/@RELEASE_VERSION@/${release_version}/g" "$pkg/README.md"
 
 (
   cd "$pkg"

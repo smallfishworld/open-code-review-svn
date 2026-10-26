@@ -40,6 +40,10 @@
 
 ---
 
+## SVN 지원 포크 안내
+
+이 포크는 공식 Open Code Review의 Git 리뷰 기능을 유지하면서 SVN 작업 복사본과 리비전 리뷰를 지원합니다. 배포 파일은 [GitHub Releases](https://github.com/smallfishworld/open-code-review-svn/releases/latest)에서 확인할 수 있습니다.
+
 ## Open Code Review란?
 
 Open Code Review는 AI 기반 코드 리뷰 CLI 도구입니다. Alibaba Group의 내부 공식 AI 코드 리뷰 어시스턴트에서 시작했으며, 지난 2년 동안 수만 명의 개발자에게 제공되어 수백만 건의 코드 결함을 찾아냈습니다. 대규모 환경에서 충분히 검증한 뒤 커뮤니티를 위해 오픈 소스 프로젝트로 공개했습니다. 모델 endpoint만 설정하면 바로 사용할 수 있습니다.
@@ -166,6 +170,10 @@ ocr review --format json --output result.json
 ocr delegate preview
 ocr delegate rule src/main.go src/handler.go
 ```
+
+### SVN 리뷰: 작업 복사본, 단일 리비전, 리비전 범위
+
+SVN 작업 복사본은 `ocr review --repo /path/to/wc --preview`로 확인합니다. 단일 리비전에는 `--commit 1234`, 구간 리뷰에는 `--from 1200 --to 1234`를 사용합니다.
 
 ## Documentation
 

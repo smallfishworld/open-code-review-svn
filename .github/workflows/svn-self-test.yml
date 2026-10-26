@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -56,6 +56,22 @@ jobs:
           grep -q main.c "$tmp/range.json"
           grep -q main.c "$tmp/workspace.json"
           echo "CLI preview: SVN commit, range and working-copy all completed"
+      - name: Test Linux x86_64 offline archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          bash scripts/package-linux-offline.sh ./opencodereview "$tmp" "1.13.3-svn.1"
+          test -s "$tmp/linux-x86-64-offline.tar.gz"
+          tar -xzf "$tmp/linux-x86-64-offline.tar.gz" -C "$tmp"
+          (
+            cd "$tmp/linux-x86-64-offline"
+            sha256sum -c SHA256SUMS
+            ./ocr --version
+            grep -F 'Release: v1.13.3-svn.1' README.md
+            grep -F 'ocr review --repo /path/to/svn-working-copy --preview' README.md
+          )
       - name: Cross-build Windows and macOS
         shell: bash
         run: |

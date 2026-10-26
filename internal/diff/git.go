@@ -38,7 +38,6 @@ var providerDirIgnoreDirs = []string{
 	".cachefile/",
 	"_packages/",
 	"rpm/",
-	"pkgs/",
 }
 
 // Mode defines how the diff is retrieved.

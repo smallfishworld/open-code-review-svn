@@ -42,8 +42,8 @@ func TestSVNRevisionProviders(t *testing.T) {
 
 	write(main, "int number = 2;\n")
 	write(filepath.Join(wc, "space name.c"), "int spaced = 2;\n")
-	write(filepath.Join(wc, "中文文件.c"), "int unicode = 2;\n")
-	runTestCommand(t, wc, "svn", "add", "space name.c", "中文文件.c")
+	write(filepath.Join(wc, "\u4e2d\u6587\u6587\u4ef6.c"), "int unicode = 2;\n")
+	runTestCommand(t, wc, "svn", "add", "space name.c", "\u4e2d\u6587\u6587\u4ef6.c")
 	runTestCommand(t, wc, "svn", "commit", "-m", "revision 2")
 
 	write(main, "int number = 3;\n")
@@ -67,14 +67,14 @@ func TestSVNRevisionProviders(t *testing.T) {
 				t.Errorf("incorrect historical file content: diff=%q content=%q", d.Diff, d.NewFileContent)
 			}
 		}
-		if (d.NewPath == "space name.c" || d.NewPath == "中文文件.c") && !d.IsNew {
+		if (d.NewPath == "space name.c" || d.NewPath == "\u4e2d\u6587\u6587\u4ef6.c") && !d.IsNew {
 			t.Errorf("added SVN file should be new: %+v", d)
 		}
-		if d.NewPath == "中文文件.c" && d.NewFileContent != "int unicode = 2;\n" {
+		if d.NewPath == "\u4e2d\u6587\u6587\u4ef6.c" && d.NewFileContent != "int unicode = 2;\n" {
 			t.Errorf("wrong UTF-8 SVN file content: %q", d.NewFileContent)
 		}
 	}
-	if !seen["main.c"] || !seen["space name.c"] || !seen["中文文件.c"] {
+	if !seen["main.c"] || !seen["space name.c"] || !seen["\u4e2d\u6587\u6587\u4ef6.c"] {
 		t.Fatalf("missing commit r2 paths: %+v", seen)
 	}
 

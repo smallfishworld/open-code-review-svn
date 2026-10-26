@@ -44,7 +44,16 @@
 
 This repository, [smallfishworld/open-code-review-svn](https://github.com/smallfishworld/open-code-review-svn), is an **SVN-enabled fork** of the upstream [Alibaba OpenCodeReview](https://github.com/alibaba/open-code-review) project. It keeps the upstream Git review features while adding Subversion (SVN) working-copy and historical revision reviews.
 
-**Current fork release:** [v1.12.13-svn.2](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.2) · [npm package](https://www.npmjs.com/package/@smallfishworld/open-code-review-svn) · [SVN CLI reference](pages/src/content/docs/en/cli-reference.md)
+**Current fork release:** [Latest GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/latest) · [npm package](https://www.npmjs.com/package/@smallfishworld/open-code-review-svn) · [SVN CLI reference](pages/src/content/docs/en/cli-reference.md)
+
+```bash
+npm install -g @smallfishworld/open-code-review-svn@svn
+ocr review --repo /path/to/svn-working-copy --preview
+ocr review --repo /path/to/svn-working-copy --commit 1234 --preview --format json
+ocr review --repo /path/to/svn-working-copy --from 1200 --to 1234 --preview --format json
+```
+
+For machines without public npm access, download `linux-x86-64-offline.tar.gz` from the [latest release](https://github.com/smallfishworld/open-code-review-svn/releases/latest), verify its `SHA256SUMS`, and run `./install.sh` inside the extracted archive. SVN itself must be installed for SVN reviews. The binary can run offline; LLM reviews require a configured reachable API, while `--preview` does not contact an LLM.
 
 ## What is Open Code Review?
 
