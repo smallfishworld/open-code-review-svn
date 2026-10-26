@@ -1,6 +1,6 @@
 # SVN Fork Changelog
 
-## v1.13.3-svn.1 (pending release)
+## v1.13.3-svn.1 (released 2026-10-26)
 
 ### Upstream sync
 - Merge official Alibaba Open Code Review v1.13.3 (`375f64cd6f67a48a135da83cfcf59c52669a09cb`) without replacing SVN-specific Git history.
@@ -19,4 +19,5 @@
 
 ### Verification
 - Official upstream three-way merge, Go build and full Go test suite succeeded in the initial integration run.
-- PR CI and SVN regression workflows must pass before this version is tagged or published.
+- All eleven migration checks and merged main CI passed; Go Race coverage 91.1%.
+- Published six platform binaries, a verified Linux offline archive, and seven npm packages.

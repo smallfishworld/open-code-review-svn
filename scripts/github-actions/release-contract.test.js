@@ -245,6 +245,8 @@ test("SVN fork verifies the globally installed published CLI", () => {
   assert.ok(job.includes("Verify published npm global install"));
   assert.ok(job.includes("npm install -g"));
   assert.ok(job.includes("ocr --version"));
+  assert.ok(job.includes('npm install -g --cache "$tmp_cache" --prefer-online'));
+  assert.ok(job.includes("npm registry has not served"));
 });
 
 if (failures) process.exitCode = 1;
