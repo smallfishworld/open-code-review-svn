@@ -240,4 +240,11 @@ test("SVN fork npm packages are published on svn dist-tag", () => {
   }
 });
 
+test("SVN fork verifies the globally installed published CLI", () => {
+  const job = jobText("npm-publish");
+  assert.ok(job.includes("Verify published npm global install"));
+  assert.ok(job.includes("npm install -g"));
+  assert.ok(job.includes("ocr --version"));
+});
+
 if (failures) process.exitCode = 1;

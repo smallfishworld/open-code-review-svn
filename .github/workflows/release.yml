@@ -382,3 +382,14 @@ jobs:
             npm publish --access public --provenance --tag svn
             echo "Published: ${pkg_name}@${VERSION}"
           fi
+
+      - name: Verify published npm global install
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#release/}"
+          VERSION="${VERSION#v}"
+          npm install -g "@smallfishworld/open-code-review-svn@${VERSION}"
+          command -v ocr
+          ocr --version
+          ocr review --help | grep -F -- '--preview'
