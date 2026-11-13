@@ -41,15 +41,29 @@ func boundedSearchLine(line string) string {
 // CodeSearchProvider uses git grep for Git and native SVN file enumeration for Subversion.
 type CodeSearchProvider struct {
 	FileReader *FileReader
-	cacheMu    sync.Mutex
-	cache      map[string]string
+	cacheState *codeSearchCache
+	Access     *CodeAccess
 }
 
-func NewCodeSearch(fr *FileReader) *CodeSearchProvider { return &CodeSearchProvider{FileReader: fr} }
+type codeSearchCache struct {
+	mu     sync.Mutex
+	values map[string]string
+}
+
+func NewCodeSearch(fr *FileReader) *CodeSearchProvider {
+	return &CodeSearchProvider{FileReader: fr, cacheState: &codeSearchCache{}}
+}
 
 func (p *CodeSearchProvider) Tool() Tool { return CodeSearch }
 
 func (p *CodeSearchProvider) Execute(ctx context.Context, args map[string]any) (string, error) {
+	return p.Access.execute(ctx, args, p.FileReader, func(reader *FileReader) (string, error) {
+		selected := &CodeSearchProvider{FileReader: reader, cacheState: p.cacheState}
+		return selected.execute(ctx, args)
+	})
+}
+
+func (p *CodeSearchProvider) execute(ctx context.Context, args map[string]any) (string, error) {
 	searchText, _ := args["search_text"].(string)
 	caseSensitive, _ := args["case_sensitive"].(bool)
 	usePerlRegexp, _ := args["use_perl_regexp"].(bool)
@@ -71,13 +85,18 @@ func (p *CodeSearchProvider) Execute(ctx context.Context, args map[string]any) (
 	}
 	// Per-review memoization: only successful results are saved. The cache is
 	// bounded and keyed by every search parameter affecting the result.
-	key := fmt.Sprintf("%q|%t|%t|%q", searchText, caseSensitive, usePerlRegexp, patterns)
+	key := fmt.Sprintf("%d|%t|%q|%q|%q|%t|%t|%q", p.FileReader.Mode, p.FileReader.SVN, p.FileReader.RepoDir, p.FileReader.Ref, searchText, caseSensitive, usePerlRegexp, patterns)
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	p.cacheMu.Lock()
-	cached, ok := p.cache[key]
-	p.cacheMu.Unlock()
+	cache := p.cacheState
+	if cache == nil {
+		cache = &codeSearchCache{}
+		p.cacheState = cache
+	}
+	cache.mu.Lock()
+	cached, ok := cache.values[key]
+	cache.mu.Unlock()
 	if ok {
 		return cached, nil
 	}
@@ -93,14 +112,14 @@ func (p *CodeSearchProvider) Execute(ctx context.Context, args map[string]any) (
 		return "", err
 	}
 	if len(result) <= 128<<10 {
-		p.cacheMu.Lock()
-		if p.cache == nil {
-			p.cache = make(map[string]string)
+		cache.mu.Lock()
+		if cache.values == nil {
+			cache.values = make(map[string]string)
 		}
-		if len(p.cache) < 128 {
-			p.cache[key] = result
+		if len(cache.values) < 128 {
+			cache.values[key] = result
 		}
-		p.cacheMu.Unlock()
+		cache.mu.Unlock()
 	}
 	return result, nil
 }
@@ -189,6 +208,9 @@ func (p *CodeSearchProvider) runGitGrep(parentCtx context.Context, cmdArgs []str
 }
 
 func (p *CodeSearchProvider) gitGrep(ctx context.Context, searchText string, caseSensitive bool, usePerlRegexp bool, pathspec []string) (string, error) {
+	if p.FileReader.Mode == ModeEmpty {
+		return "No matches found", nil
+	}
 	cmdArgs := p.buildGrepArgs(searchText, caseSensitive, usePerlRegexp, false, pathspec)
 	if cmdArgs == nil {
 		return "Error: ref must not start with '-'", nil

@@ -128,7 +128,7 @@ The agent's strengths are concentrated where they matter most — dynamic decisi
 
 ```bash
 # Install the tested fork release
-npm install -g @smallfishworld/open-code-review-svn@1.12.13-svn.2
+npm install -g @smallfishworld/open-code-review-svn@1.13.8-svn.1
 
 # Or track the moving SVN release tag
 npm install -g @smallfishworld/open-code-review-svn@svn
@@ -136,12 +136,12 @@ npm install -g @smallfishworld/open-code-review-svn@svn
 
 After installation, the `ocr` command is available globally.
 
-For offline installation, download the matching Windows, macOS, or Linux binary (and `sha256sum.txt`) from the [fork's GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.2). General upstream installation documentation is available at [Installation](https://open-codereview.ai/docs/installation); its upstream npm package is **not** this SVN-enabled fork.
+For offline installation, download the matching Windows, macOS, or Linux binary (and `sha256sum.txt`) from the [fork's GitHub Release](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.13.8-svn.1). General upstream installation documentation is available at [Installation](https://open-codereview.ai/docs/installation); its upstream npm package is **not** this SVN-enabled fork.
 
-**Linux x86_64 fully offline archive:** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.2/linux-x86-64-offline.tar.gz) ([SHA-256](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.12.13-svn.2/linux-x86-64-offline.tar.gz.sha256)). Download on an internet-connected computer, transfer both files to your offline Linux machine, then run:
+**Linux x86_64 fully offline archive:** [linux-x86-64-offline.tar.gz](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.13.8-svn.1/linux-x86-64-offline.tar.gz) ([SHA-256](https://github.com/smallfishworld/open-code-review-svn/releases/download/v1.13.8-svn.1/sha256sum.txt)). Download on an internet-connected computer, transfer both files to your offline Linux machine, then run:
 
 ```bash
-sha256sum -c linux-x86-64-offline.tar.gz.sha256
+grep 'linux-x86-64-offline.tar.gz' sha256sum.txt | sha256sum -c -
 tar -xzf linux-x86-64-offline.tar.gz
 cd linux-x86-64-offline
 sha256sum -c SHA256SUMS
@@ -156,6 +156,9 @@ The archive is self-contained for installation (no Go, Node.js, npm, or download
 **1. Configure LLM**
 
 You must configure an LLM before reviewing code, unless you use [Delegation Mode](https://open-codereview.ai/docs/delegate).
+
+- **OCR calls the model:** `ocr review`, the `/open-code-review:review` command, and the `open-code-review` skill use OCR's own provider configuration, not your Claude Code Team/Pro subscription login. Authentication requirements depend on the provider; see [Configuration](https://open-codereview.ai/docs/configuration).
+- **The host agent calls the model:** the `/open-code-review:delegate-review` command and the `open-code-review-delegate` skill use the host agent's configured model and authentication. No separate LLM configuration or credentials are needed in OCR. See the [Claude Code install steps](plugins/open-code-review/README.md#claude-code).
 
 ```bash
 ocr config provider          # Select a built-in provider or add a custom one
@@ -249,9 +252,11 @@ ocr review --repo /path/to/svn-working-copy --commit 1234
 - In working-copy mode, unversioned (`?`) files are skipped until `svn add <path>` is run. Scheduled additions, deletions, filenames with spaces, and UTF-8 filenames are covered by SVN tests. Binary changes are detected but are not treated as reviewable source text.
 - `--preview` runs file selection without invoking an LLM; use it to verify scope before spending model tokens.
 - In SVN review, agent `code_search` and `file_find` use the SVN versioned file inventory instead of `git grep` / `git ls-files`. Workspace searches use the local files; historical searches read the selected revision. SVN regex searches use Go RE2 syntax (PCRE-only constructs are not supported).
+- In historical SVN reviews, `file_read`, `code_search` and `file_find` support `side: old` / `side: new` for direct comparisons. Single revisions compare against the previous revision and ranges use the explicit endpoints.
+- Upstream v1.13.8 removes the CLI `--tools` override. Configure tool availability through the supported review template configuration instead; `--max-tools` limits the request budget and does not select individual tools.
 - Git-style `--resume` of historical reviews is **not a supported SVN workflow**. Git `--commit` and `--from`/`--to` continue to accept Git refs with their original Git semantics.
 
-See the [fork's source-level CLI reference](pages/src/content/docs/en/cli-reference.md) and [v1.12.13-svn.2 binaries](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.12.13-svn.2).
+See the [fork's source-level CLI reference](pages/src/content/docs/en/cli-reference.md) and [v1.13.8-svn.1 binaries](https://github.com/smallfishworld/open-code-review-svn/releases/tag/v1.13.8-svn.1).
 
 ## Documentation
 

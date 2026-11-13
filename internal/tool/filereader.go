@@ -31,6 +31,7 @@ const (
 	ModeRange
 	// ModeCommit reads files as they exist at a specific commit hash.
 	ModeCommit
+	ModeEmpty
 )
 
 // ParseReviewMode returns the correct ReviewMode based on provided flag values.
@@ -67,12 +68,29 @@ type FileReader struct {
 	Runner *gitcmd.Runner
 	SVN    bool // SVN history uses svn cat rather than git show
 	// The caches are scoped to this reader (one review run), never shared globally.
+	cache *svnReaderCache
+}
+
+// SVN reader state is an indirection so FileReader can be copied by the
+// comparison-side access layer without copying synchronization primitives.
+type svnReaderCache struct {
 	cacheMu       sync.Mutex
 	fileCache     map[string]string
 	cacheBytes    int
 	svnFilesMu    sync.Mutex
 	svnFileNames  []string
 	svnFilesReady bool
+}
+
+var svnReaderInitMu sync.Mutex
+
+func (fr *FileReader) svnCache() *svnReaderCache {
+	svnReaderInitMu.Lock()
+	defer svnReaderInitMu.Unlock()
+	if fr.cache == nil {
+		fr.cache = &svnReaderCache{}
+	}
+	return fr.cache
 }
 
 // Read returns the full content of a file path (relative to RepoDir),
@@ -87,9 +105,10 @@ func (fr *FileReader) Read(ctx context.Context, path string) (string, error) {
 		return "", err
 	}
 	if fr.SVN {
-		fr.cacheMu.Lock()
-		content, ok := fr.fileCache[path]
-		fr.cacheMu.Unlock()
+		state := fr.svnCache()
+		state.cacheMu.Lock()
+		content, ok := state.fileCache[path]
+		state.cacheMu.Unlock()
 		if ok {
 			return content, nil
 		}
@@ -98,15 +117,16 @@ func (fr *FileReader) Read(ctx context.Context, path string) (string, error) {
 	if err != nil || !fr.SVN || len(content) > 8<<20 {
 		return content, err
 	}
-	fr.cacheMu.Lock()
-	if fr.fileCache == nil {
-		fr.fileCache = make(map[string]string)
+	state := fr.svnCache()
+	state.cacheMu.Lock()
+	if state.fileCache == nil {
+		state.fileCache = make(map[string]string)
 	}
-	if _, exists := fr.fileCache[path]; !exists && fr.cacheBytes+len(content) <= 64<<20 {
-		fr.fileCache[path] = content
-		fr.cacheBytes += len(content)
+	if _, exists := state.fileCache[path]; !exists && state.cacheBytes+len(content) <= 64<<20 {
+		state.fileCache[path] = content
+		state.cacheBytes += len(content)
 	}
-	fr.cacheMu.Unlock()
+	state.cacheMu.Unlock()
 	return content, nil
 }
 
@@ -115,6 +135,8 @@ func (fr *FileReader) readUncached(ctx context.Context, path string) (string, er
 		return diff.ReadSVNRevisionFile(ctx, fr.RepoDir, path, fr.Ref)
 	}
 	switch fr.Mode {
+	case ModeEmpty:
+		return "", fmt.Errorf("file %q does not exist in the empty tree", path)
 	case ModeWorkspace:
 		return fr.readFromDisk(path)
 	case ModeRange, ModeCommit:
@@ -193,6 +215,8 @@ func (fr *FileReader) ReadLines(ctx context.Context, path string, startLine, max
 		return scanLines(bytes.NewBufferString(content), startLine, maxLines)
 	}
 	switch fr.Mode {
+	case ModeEmpty:
+		return nil, 0, fmt.Errorf("file %q does not exist in the empty tree", path)
 	case ModeWorkspace:
 		return fr.readLinesFromDisk(path, startLine, maxLines)
 	case ModeRange, ModeCommit:
