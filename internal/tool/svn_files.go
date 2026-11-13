@@ -25,18 +25,19 @@ const svnSearchTimeout = 30 * time.Second
 func svnFiles(parent context.Context, fr *FileReader) ([]string, error) {
 	// Serialize the first inventory build, so parallel search tools do not
 	// each spawn an expensive svn status/list for the same review.
-	fr.svnFilesMu.Lock()
-	defer fr.svnFilesMu.Unlock()
+	state := fr.svnCache()
+	state.svnFilesMu.Lock()
+	defer state.svnFilesMu.Unlock()
 	if err := parent.Err(); err != nil {
 		return nil, err
 	}
-	if fr.svnFilesReady {
-		return append([]string(nil), fr.svnFileNames...), nil
+	if state.svnFilesReady {
+		return append([]string(nil), state.svnFileNames...), nil
 	}
 	files, err := svnFilesUncached(parent, fr)
 	if err == nil {
-		fr.svnFileNames = append([]string(nil), files...)
-		fr.svnFilesReady = true
+		state.svnFileNames = append([]string(nil), files...)
+		state.svnFilesReady = true
 	}
 	return files, err
 }

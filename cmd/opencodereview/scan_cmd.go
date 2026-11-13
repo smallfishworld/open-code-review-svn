@@ -15,7 +15,7 @@ import (
 	"github.com/alibaba/open-code-review/internal/config/template"
 	"github.com/alibaba/open-code-review/internal/diff"
 	"github.com/alibaba/open-code-review/internal/llm"
-	"github.com/alibaba/open-code-review/internal/llmloop"
+	"github.com/alibaba/open-code-review/internal/reviewtask"
 	"github.com/alibaba/open-code-review/internal/scan"
 	"github.com/alibaba/open-code-review/internal/session"
 	"github.com/alibaba/open-code-review/internal/telemetry"
@@ -26,7 +26,6 @@ import (
 )
 
 type scanOptions struct {
-	toolConfigPath        string
 	rulePath              string
 	repoDir               string
 	paths                 string
@@ -171,7 +170,11 @@ func executeScanContext(ctx context.Context, opts scanOptions) (retErr error) {
 		return err
 	}
 
-	rt, err := loadLLMRuntime(cc.Template, opts.toolConfigPath, llm.ResolveOptions{
+	scanToolDefs, err := loadToolDefs(scanTpl.MainTask.Tools)
+	if err != nil {
+		return fmt.Errorf("scan MAIN_TASK.tools: %w", err)
+	}
+	rt, err := loadLLMRuntime(cc.Template, llm.ResolveOptions{
 		Provider: opts.provider,
 		Model:    opts.model,
 		Context:  ctx,
@@ -194,11 +197,6 @@ func executeScanContext(ctx context.Context, opts scanOptions) (retErr error) {
 		scanTpl.ApplyLanguage(rt.AppCfg.Language)
 	}
 
-	// file_read_diff is meaningless in scan mode (no diff exists). Hiding it
-	// from MainToolDefs stops the LLM from burning tool-call rounds probing
-	// for diff content that does not exist.
-	scanToolDefs := excludeToolDef(rt.MainToolDefs, "file_read_diff")
-
 	// Scan mode always reads file contents from the working tree.
 	fileReader := &tool.FileReader{
 		RepoDir: cc.RepoDir,
@@ -218,7 +216,7 @@ func executeScanContext(ctx context.Context, opts scanOptions) (retErr error) {
 		Tools:                 tools,
 		MainToolDefs:          scanToolDefs,
 		CommentCollector:      rt.Collector,
-		CommentWorkerPool:     llmloop.NewCommentWorkerPool(opts.concurrency),
+		CommentWorkerPool:     reviewtask.NewCommentWorkerPool(opts.concurrency),
 		MaxConcurrency:        opts.concurrency,
 		ConcurrentTaskTimeout: opts.concurrentTaskTimeout,
 		Model:                 rt.Model,
