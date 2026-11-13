@@ -6,7 +6,7 @@ on:
     # Publish the SVN fork from a versioned branch created only after main CI
     # passes. The release action creates the immutable tag in the same run;
     # GITHUB_TOKEN-created tags do not trigger a second release workflow.
-    branches: ['release/v1.13.3-svn.1']
+    branches: ['release/v1.13.8-svn.1']
   workflow_dispatch:
 
 permissions:
