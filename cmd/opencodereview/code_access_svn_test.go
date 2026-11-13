@@ -31,11 +31,11 @@ func TestSVNComparisonSideCodeToolsRealRepository(t *testing.T) {
 	}
 	run(tmp, "svnadmin", "create", repo)
 	run(tmp, "svn", "checkout", "file://"+filepath.ToSlash(repo), wc)
-	file := filepath.Join(wc, "space 中文.c")
+	file := filepath.Join(wc, "space \u4e2d\u6587.c")
 	if err := os.WriteFile(file, []byte("OLD_SIDE_MARKER\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	run(wc, "svn", "add", "space 中文.c")
+	run(wc, "svn", "add", "space \u4e2d\u6587.c")
 	run(wc, "svn", "commit", "-m", "first")
 	if err := os.WriteFile(file, []byte("NEW_SIDE_MARKER\n"), 0600); err != nil {
 		t.Fatal(err)
@@ -56,11 +56,11 @@ func TestSVNComparisonSideCodeToolsRealRepository(t *testing.T) {
 				if !ok {
 					t.Fatal(toolName)
 				}
-				args := map[string]any{"side": tc.side, "file_path": "space 中文.c", "search_text": tc.marker, "query_name": "space 中文.c"}
+				args := map[string]any{"side": tc.side, "file_path": "space \u4e2d\u6587.c", "search_text": tc.marker, "query_name": "space \u4e2d\u6587.c"}
 				got, err := p.Execute(context.Background(), args)
 				want := tc.marker
 				if toolName == "file_find" {
-					want = "space 中文.c"
+					want = "space \u4e2d\u6587.c"
 				}
 				if err != nil || !strings.Contains(got, want) {
 					t.Errorf("%+v %s %s: %q %v", opts, tc.side, toolName, got, err)
